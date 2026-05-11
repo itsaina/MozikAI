@@ -151,7 +151,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'payment',
-    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCompose selon ton opérateur puis suis les instructions pour envoyer de l'argent.",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900 via MVola.\n\nCode USSD : *111*1*2*0341486900*2500#",
     quickReplies: [
       { title: '✅ J\'ai payé', payload: 'payé' },
       { title: '❌ Annuler', payload: 'annuler' },
@@ -324,8 +324,15 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   const currentStep = STEPS[state.step]
   const isSkip = reply === 'Passer' || replyLower === 'passer'
 
-  // Handle payment confirmation
-  if (currentStep.key === 'payment' && replyLower === 'payé') {
+  // ── Payment step is ALWAYS verified, no matter what the user sends ──
+  if (currentStep.key === 'payment') {
+    // Cancel
+    if (replyLower === 'annuler') {
+      await sendText(senderId, '❌ Commande annulée. Envoie "recommencer" pour créer une nouvelle chanson.', token)
+      conversations.delete(senderId)
+      return
+    }
+
     if (!state.config.phone) {
       await sendText(senderId, '❌ Numéro de téléphone manquant. Envoie "recommencer" pour recommencer.', token)
       conversations.delete(senderId)
@@ -336,11 +343,11 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     if (!pending) {
       await sendText(senderId,
         '⏳ Nous n\'avons pas encore reçu la confirmation de ton paiement.\n' +
-        'Attends quelques secondes puis clique à nouveau sur "✅ J\'ai payé".\n' +
-        'Si le problème persiste, contacte le support.',
+        'Attends quelques secondes puis réessaie.',
         token
       )
-      // DO NOT advance — stay on payment step so user can retry
+      // Resend the quick-replies so user can click again
+      await sendWithQR(senderId, 'Clique ci-dessous une fois le paiement effectué 👇', currentStep.quickReplies, token)
       return
     }
 
@@ -348,21 +355,13 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     await markPaymentUsed(pending.id)
     await sendText(senderId, `✅ Paiement confirmé (Trans ID: ${pending.transId}) !`, token)
 
-    // Continue to waitingGenerate
-    state.step++
+    // Only now advance to waitingGenerate
     const prompt = buildPrompt(state.config)
     state.waitingGenerate = true
     await sendText(senderId,
       `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
       token
     )
-    return
-  }
-
-  // Handle payment cancellation
-  if (currentStep.key === 'payment' && replyLower === 'annuler') {
-    await sendText(senderId, '❌ Commande annulée. Envoie "recommencer" pour créer une nouvelle chanson.', token)
-    conversations.delete(senderId)
     return
   }
 
@@ -384,16 +383,9 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   if (state.step < STEPS.length) {
     const nextStep = STEPS[state.step]
     if (nextStep.key === 'payment') {
-      // Send payment instructions in separate messages for better readability
+      // Send payment instructions in separate messages
       await sendText(senderId, nextStep.question, token)
-      await sendText(senderId,
-        'Codes USSD complets :\n' +
-        '• Airtel Money : *150*1*2*0341486900*2500#\n' +
-        '• MVola (Telma) : *111*1*2*0341486900*2500#\n' +
-        '• Orange Money : *144*1*2*0341486900*2500#',
-        token
-      )
-      await sendWithQR(senderId, 'Une fois le paiement effectué, clique ci-dessous 👇', nextStep.quickReplies, token)
+      await sendWithQR(senderId, 'Clique ci-dessous une fois le paiement effectué 👇', nextStep.quickReplies, token)
     } else {
       await sendStep(senderId, state.step, token)
     }

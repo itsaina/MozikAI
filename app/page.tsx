@@ -89,7 +89,7 @@ const STEPS: StepDef[] = [
   },
   {
     key: 'payment',
-    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCodes USSD complets :\n• Airtel Money : *150*1*2*0341486900*2500#\n• MVola (Telma) : *111*1*2*0341486900*2500#\n• Orange Money : *144*1*2*0341486900*2500#\n\nCompose selon ton opérateur puis suis les instructions pour envoyer de l'argent.",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900 via MVola.\n\nCode USSD : *111*1*2*0341486900*2500#",
     quickReplies: ['✅ J\'ai payé', '❌ Annuler'],
   },
 ]
