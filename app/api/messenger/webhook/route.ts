@@ -145,7 +145,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'payment',
-    question: 'Quel numéro as-tu utilisé pour payer ? (ex: 0326084829)',
+    question: 'Quel numéro as-tu utilisé pour payer ?',
     quickReplies: [],
     textInput: true,
   },
