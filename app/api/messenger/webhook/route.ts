@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { getSettings, saveSettings, addHistory, getAudioBase64 } from '@/lib/store'
+import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed } from '@/lib/store'
 import { generateMusic } from '@/lib/generate'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
@@ -13,11 +13,12 @@ interface MusicConfig {
   dynamics: string
   vocals: string
   lyrics: string
+  phone?: string
   payment?: string
 }
 
 const DEFAULT_CONFIG: MusicConfig = {
-  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', payment: '',
+  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', phone: '', payment: '',
 }
 
 const TEMPO_MAP: Record<string, string> = {
@@ -143,8 +144,14 @@ const STEPS: Step[] = [
     textInput: true,
   },
   {
+    key: 'phone',
+    question: "📱 Quel est ton numéro de téléphone ? (ex: 0341486900)\nIl servira à vérifier ton paiement automatiquement.",
+    quickReplies: [],
+    textInput: true,
+  },
+  {
     key: 'payment',
-    question: "💳 Paiement requis : 2 500 Ar\n\nEnvoie 2 500 Ar au numéro 0341486900.\n\nCodes USSD selon ton opérateur :\n• Airtel Money : *150*1*2*0341486900*2500#\n• MVola (Telma) : *150*2*2*0341486900*2500#\n• Orange Money : *144*2*0341486900*2500#\n\nUne fois le paiement effectué, clique ci-dessous 👇",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCompose selon ton opérateur :\n• MVola (Telma) : #111\n• Orange Money : *144#\n• Airtel Money : *150#\n\nPuis suis les instructions pour envoyer de l'argent.\n\nUne fois fait, clique ci-dessous 👇",
     quickReplies: [
       { title: '✅ J\'ai payé', payload: 'payé' },
       { title: '❌ Annuler', payload: 'annuler' },
@@ -314,6 +321,48 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   const currentStep = STEPS[state.step]
   const isSkip = reply === 'Passer' || replyLower === 'passer'
 
+  // Handle payment confirmation
+  if (currentStep.key === 'payment' && replyLower === 'payé') {
+    if (!state.config.phone) {
+      await sendText(senderId, '❌ Numéro de téléphone manquant. Envoie "recommencer" pour recommencer.', token)
+      conversations.delete(senderId)
+      return
+    }
+
+    const pending = await findPendingPayment(state.config.phone, 2500)
+    if (!pending) {
+      await sendText(senderId,
+        '⏳ Nous n\'avons pas encore reçu la confirmation de ton paiement.\n' +
+        'Attends quelques secondes et réessaie en envoyant "générer".\n' +
+        'Si le problème persiste, contacte le support.',
+        token
+      )
+      // Advance to waitingGenerate so they can retry later
+      state.step++
+      const prompt = buildPrompt(state.config)
+      state.waitingGenerate = true
+      await sendText(senderId,
+        `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
+        token
+      )
+      return
+    }
+
+    // Mark payment as used
+    await markPaymentUsed(pending.id)
+    await sendText(senderId, `✅ Paiement confirmé (Trans ID: ${pending.transId}) !`, token)
+
+    // Continue to waitingGenerate
+    state.step++
+    const prompt = buildPrompt(state.config)
+    state.waitingGenerate = true
+    await sendText(senderId,
+      `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
+      token
+    )
+    return
+  }
+
   // Handle payment cancellation
   if (currentStep.key === 'payment' && replyLower === 'annuler') {
     await sendText(senderId, '❌ Commande annulée. Envoie "recommencer" pour créer une nouvelle chanson.', token)
@@ -323,8 +372,12 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
   // Store the answer
   if (currentStep.textInput) {
-    // Lyrics step — free text OR skip
-    state.config.lyrics = isSkip ? '' : msgText.trim()
+    if (currentStep.key === 'phone') {
+      state.config.phone = msgText.trim()
+    } else {
+      // Lyrics step — free text OR skip
+      state.config.lyrics = isSkip ? '' : msgText.trim()
+    }
   } else {
     // Quick reply step — use payload value
     if (!isSkip) state.config[currentStep.key] = reply

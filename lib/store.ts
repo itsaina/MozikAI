@@ -18,6 +18,16 @@ export interface MessengerSettings {
   appSecret: string
 }
 
+export interface PaymentRecord {
+  id: string
+  timestamp: string
+  amount: number
+  senderPhone: string
+  transId: string
+  message: string
+  used: boolean
+}
+
 // ─── Detect backend ──────────────────────────────────────────────────────────
 
 const usePg = !!process.env.DATABASE_URL
@@ -55,6 +65,17 @@ async function initPg() {
       value TEXT NOT NULL
     )
   `)
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      timestamp TIMESTAMPTZ DEFAULT NOW(),
+      amount INTEGER NOT NULL,
+      sender_phone TEXT NOT NULL,
+      trans_id TEXT NOT NULL,
+      message TEXT,
+      used BOOLEAN DEFAULT FALSE
+    )
+  `)
 }
 
 // ─── Filesystem backend ──────────────────────────────────────────────────────
@@ -62,6 +83,7 @@ async function initPg() {
 const GEN_DIR = join(process.cwd(), 'public', 'generations')
 const INDEX = join(GEN_DIR, 'index.json')
 const SETTINGS_PATH = join(process.cwd(), 'data', 'messenger-settings.json')
+const PAYMENTS_PATH = join(process.cwd(), 'data', 'payments.json')
 
 function ensureDir() {
   if (!existsSync(GEN_DIR)) mkdirSync(GEN_DIR, { recursive: true })
@@ -82,6 +104,15 @@ function readFsSettings(): MessengerSettings {
 function writeFsSettings(s: MessengerSettings) {
   if (!existsSync(join(process.cwd(), 'data'))) mkdirSync(join(process.cwd(), 'data'), { recursive: true })
   writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2))
+}
+
+function readFsPayments(): PaymentRecord[] {
+  try { return JSON.parse(readFileSync(PAYMENTS_PATH, 'utf-8')) } catch { return [] }
+}
+
+function writeFsPayments(list: PaymentRecord[]) {
+  if (!existsSync(join(process.cwd(), 'data'))) mkdirSync(join(process.cwd(), 'data'), { recursive: true })
+  writeFileSync(PAYMENTS_PATH, JSON.stringify(list, null, 2))
 }
 
 // ─── Unified API ─────────────────────────────────────────────────────────────
@@ -193,4 +224,107 @@ export async function saveSettings(s: MessengerSettings): Promise<void> {
   }
 
   writeFsSettings(s)
+}
+
+// ─── Payments ────────────────────────────────────────────────────────────────
+
+function normalizePhone(raw: string): string {
+  const cleaned = raw.replace(/[\s\-]/g, '')
+  if (cleaned.startsWith('+261')) return '0' + cleaned.slice(4)
+  if (cleaned.startsWith('261')) return '0' + cleaned.slice(3)
+  return cleaned
+}
+
+export async function addPayment(amount: number, senderPhone: string, transId: string, message: string): Promise<PaymentRecord> {
+  const id = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7)
+  const record: PaymentRecord = {
+    id,
+    timestamp: new Date().toISOString(),
+    amount,
+    senderPhone: normalizePhone(senderPhone),
+    transId,
+    message,
+    used: false,
+  }
+
+  if (usePg) {
+    await initPg()
+    await getPool().query(
+      'INSERT INTO payments (id, amount, sender_phone, trans_id, message, used) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, amount, record.senderPhone, transId, message, false]
+    )
+    return record
+  }
+
+  const list = readFsPayments()
+  list.unshift(record)
+  writeFsPayments(list)
+  return record
+}
+
+export async function findPendingPayment(senderPhone: string, expectedAmount: number): Promise<PaymentRecord | null> {
+  const normalized = normalizePhone(senderPhone)
+
+  if (usePg) {
+    await initPg()
+    const { rows } = await getPool().query(
+      `SELECT id, timestamp, amount, sender_phone, trans_id, message, used
+       FROM payments
+       WHERE sender_phone = $1 AND used = FALSE AND amount >= $2
+       ORDER BY timestamp DESC
+       LIMIT 1`,
+      [normalized, expectedAmount]
+    )
+    if (!rows.length) return null
+    const r = rows[0]
+    return {
+      id: r.id,
+      timestamp: r.timestamp,
+      amount: r.amount,
+      senderPhone: r.sender_phone,
+      transId: r.trans_id,
+      message: r.message,
+      used: r.used,
+    }
+  }
+
+  const list = readFsPayments()
+  const found = list.find(p =>
+    normalizePhone(p.senderPhone) === normalized &&
+    !p.used &&
+    p.amount >= expectedAmount
+  )
+  return found ?? null
+}
+
+export async function markPaymentUsed(id: string): Promise<void> {
+  if (usePg) {
+    await initPg()
+    await getPool().query('UPDATE payments SET used = TRUE WHERE id = $1', [id])
+    return
+  }
+
+  const list = readFsPayments()
+  const updated = list.map(p => p.id === id ? { ...p, used: true } : p)
+  writeFsPayments(updated)
+}
+
+export async function getPayments(): Promise<PaymentRecord[]> {
+  if (usePg) {
+    await initPg()
+    const { rows } = await getPool().query(
+      'SELECT id, timestamp, amount, sender_phone, trans_id, message, used FROM payments ORDER BY timestamp DESC'
+    )
+    return rows.map((r: { id: string; timestamp: string; amount: number; sender_phone: string; trans_id: string; message: string; used: boolean }) => ({
+      id: r.id,
+      timestamp: r.timestamp,
+      amount: r.amount,
+      senderPhone: r.sender_phone,
+      transId: r.trans_id,
+      message: r.message,
+      used: r.used,
+    }))
+  }
+
+  return readFsPayments()
 }

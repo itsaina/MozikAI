@@ -13,6 +13,7 @@ interface MusicConfig {
   dynamics: string
   vocals: string
   lyrics: string
+  phone?: string
   payment?: string
 }
 
@@ -31,7 +32,7 @@ interface ChatMsg {
 }
 
 const DEFAULT_CONFIG: MusicConfig = {
-  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', payment: '',
+  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', phone: '', payment: '',
 }
 
 // ─── Steps (en français) ──────────────────────────────────────────────────────
@@ -81,8 +82,14 @@ const STEPS: StepDef[] = [
     textInput: true,
   },
   {
+    key: 'phone',
+    question: "📱 Quel est ton numéro de téléphone ? (ex: 0341486900)",
+    quickReplies: [],
+    textInput: true,
+  },
+  {
     key: 'payment',
-    question: "💳 Paiement requis : 2 500 Ar\n\nEnvoie 2 500 Ar au numéro 0341486900.\n\nCodes USSD selon ton opérateur :\n• Airtel Money : *150*1*2*0341486900*2500#\n• MVola (Telma) : *150*2*2*0341486900*2500#\n• Orange Money : *144*2*0341486900*2500#\n\nUne fois le paiement effectué, clique ci-dessous 👇",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCompose selon ton opérateur :\n• MVola (Telma) : #111\n• Orange Money : *144#\n• Airtel Money : *150#\n\nPuis suis les instructions pour envoyer de l'argent.",
     quickReplies: ['✅ J\'ai payé', '❌ Annuler'],
   },
 ]
@@ -548,7 +555,7 @@ export default function Home() {
     const isSkip = reply === 'Passer' || reply.startsWith('Passer')
     const isCancel = reply === '❌ Annuler' || reply === 'Annuler'
 
-    if (isCancel && stepDef.key === 'payment') {
+    if (isCancel && (stepDef.key === 'payment' || stepDef.key === 'phone')) {
       setMessages(prev => [...prev, { id: Date.now(), type: 'user', text: '❌ Annuler' }])
       setBotTyping(true)
       setTimeout(() => {
