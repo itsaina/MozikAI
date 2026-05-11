@@ -1,25 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join } from 'path'
 import crypto from 'crypto'
-
-// ─── Settings ────────────────────────────────────────────────────────────────
-
-const SETTINGS_PATH = join(process.cwd(), 'data', 'messenger-settings.json')
-
-interface MessengerSettings {
-  pageAccessToken: string
-  verifyToken: string
-  appSecret: string
-}
-
-function readSettings(): MessengerSettings {
-  try {
-    return JSON.parse(readFileSync(SETTINGS_PATH, 'utf-8'))
-  } catch {
-    return { pageAccessToken: '', verifyToken: '', appSecret: '' }
-  }
-}
+import { getSettings, saveSettings, addHistory, getAudioBase64 } from '@/lib/store'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
 
@@ -246,16 +227,13 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
       return
     }
 
-    // Save audio file if present
+    // Save to store & send audio
+    let audioUrl = ''
     if (data.audio) {
       try {
-        const dir = join(process.cwd(), 'public', 'generations')
-        if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-        const id = Date.now().toString()
-        const base64 = data.audio.replace(/^data:audio\/\w+;base64,/, '')
-        writeFileSync(join(dir, `${id}.mp3`), Buffer.from(base64, 'base64'))
-        const audioUrl = `${baseUrl}/generations/${id}.mp3`
-        await sendAudio(senderId, audioUrl, token)
+        const entry = await addHistory(prompt, data.audio, data.lyrics ?? null)
+        audioUrl = entry.audioUrl ? `${baseUrl}${entry.audioUrl}` : ''
+        if (audioUrl) await sendAudio(senderId, audioUrl, token)
       } catch {
         // If audio send fails, continue to lyrics
       }
@@ -295,7 +273,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   // New conversation
   if (!conversations.has(senderId)) {
     conversations.set(senderId, { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false })
-    await sendText(senderId, "🎵 Bienvenue sur MozikAI ! Je vais t'aider à composer une chanson en quelques questions.")
+    await sendText(senderId, "🎵 Bienvenue sur MozikAI ! Je vais t'aider à composer une chanson en quelques questions.", token)
     await sendStep(senderId, 0, token)
     return
   }
@@ -351,7 +329,7 @@ function verifySignature(body: string, signature: string | null, appSecret: stri
 // ─── Route handlers ───────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const settings = readSettings()
+  const settings = await getSettings()
   const { searchParams } = new URL(req.url)
   const mode = searchParams.get('hub.mode')
   const token = searchParams.get('hub.verify_token')
@@ -364,7 +342,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const settings = readSettings()
+  const settings = await getSettings()
   if (!settings.pageAccessToken) {
     return NextResponse.json({ error: 'Page Access Token non configuré' }, { status: 500 })
   }

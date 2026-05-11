@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     if (!audioContent && !textContent) {
       console.warn('[generate] nothing usable in response')
-      return NextResponse.json({ error: 'Model returned no content', raw }, { status: 502 })
+      return NextResponse.json({ error: 'Model returned no content' }, { status: 502 })
     }
 
     return NextResponse.json({ audio: audioContent, lyrics: textContent })
