@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { getSettings, saveSettings, addHistory, getAudioBase64 } from '@/lib/store'
+import { generateMusic } from '@/lib/generate'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
 
@@ -136,7 +137,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'lyrics',
-    question: "Des paroles ? Envoie-les en message libre.\nSinon tape 'Passer' — Lyria les inventera.",
+    question: "Des paroles ? Envoie-les en message libre.\nSinon tape 'Passer' — Superchat les inventera.",
     quickReplies: [{ title: 'Passer', payload: 'Passer' }],
     textInput: true,
   },
@@ -208,6 +209,26 @@ function formatLyricsForMessenger(raw: string): string {
   return lines.join('\n').trim() || raw.trim()
 }
 
+// ─── Public base URL helper ──────────────────────────────────────────────────
+
+function getPublicBaseUrl(req: NextRequest): string {
+  // Railway / Vercel env vars are the most reliable source
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  // Fallback to request headers (for proxies that set them)
+  const forwardedProto = req.headers.get('x-forwarded-proto')
+  const forwardedHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`
+  }
+  // Last resort — req.nextUrl (often wrong behind reverse proxies)
+  return `${req.nextUrl.protocol}//${req.nextUrl.host}`
+}
+
 // ─── Generate music via internal API ─────────────────────────────────────────
 
 async function generateAndSend(senderId: string, state: ConvState, token: string, baseUrl: string) {
@@ -215,17 +236,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   await sendText(senderId, '🎵 Composition en cours… (30 à 60 secondes)', token)
 
   try {
-    const res = await fetch(`${baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    })
-    const data = (await res.json()) as { audio?: string; lyrics?: string; error?: string }
-
-    if (!res.ok || data.error) {
-      await sendText(senderId, `❌ Erreur : ${data.error ?? 'Génération échouée'}`, token)
-      return
-    }
+    const data = await generateMusic(prompt)
 
     // Save to store & send audio
     let audioUrl = ''
@@ -366,7 +377,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Pas un événement page' }, { status: 404 })
   }
 
-  const baseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`
+  const baseUrl = getPublicBaseUrl(req)
 
   // Process events (acknowledge immediately, handle async)
   const entries = (body.entry as Array<{ messaging?: Array<{ sender?: { id: string }; message?: { text?: string; quick_reply?: { payload: string } } }> }>) ?? []
