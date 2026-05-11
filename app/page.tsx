@@ -633,26 +633,24 @@ export default function Home() {
             <p className="font-semibold text-[15px] leading-tight">MozikAI</p>
             <p className="text-[12px] text-[#0084FF] leading-tight">En ligne · Lyria 3 Pro</p>
           </div>
-          <div className="flex items-center gap-1">
-            <button className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center text-[#0084FF] hover:bg-[#4A4B4C] transition-colors">
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={restart}
+              title="Nouvelle conversation"
+              className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center text-[#0084FF] hover:bg-[#4A4B4C] transition-colors flex-shrink-0"
+            >
+              <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
-            <button className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center text-[#0084FF] hover:bg-[#4A4B4C] transition-colors">
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-              </svg>
-            </button>
-            <button onClick={restart} title="Nouvelle conversation" className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center text-[#0084FF] hover:bg-[#4A4B4C] transition-colors">
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-              </svg>
-            </button>
-            <Link href="/messenger" title="Intégration Messenger" className="w-9 h-9 rounded-full bg-[#3A3B3C] flex items-center justify-center text-[#0084FF] hover:bg-[#4A4B4C] transition-colors">
-              <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+            <Link
+              href="/messenger"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#0084FF]/15 border border-[#0084FF]/40 text-[#0084FF] hover:bg-[#0084FF]/25 transition-colors flex-shrink-0"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.917 1.44 5.524 3.7 7.23v3.527l3.397-1.868c.908.252 1.868.388 2.903.388 5.523 0 10-4.145 10-9.277S17.523 2 12 2zm1.044 12.488l-2.548-2.717-4.973 2.717 5.473-5.808 2.61 2.717 4.91-2.717-5.472 5.808z" />
               </svg>
+              <span className="text-[13px] font-medium">Intégration</span>
             </Link>
           </div>
         </div>
