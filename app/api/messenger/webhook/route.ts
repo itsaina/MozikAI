@@ -350,20 +350,20 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
         'Attends quelques secondes puis réessaie.',
         token
       )
-      // Resend the quick-replies so user can click again
-      await sendWithQR(senderId, 'Clique ci-dessous une fois le paiement effectué 👇', currentStep.quickReplies, token)
+      // Resend the quick-replies so user can click again (or type 'j'ai payé')
+      await sendWithQR(senderId, 'Clique ci-dessous ou envoie "J\'ai payé" une fois le paiement effectué 👇', currentStep.quickReplies, token)
       return
     }
 
     // Mark payment as used
     await markPaymentUsed(pending.id)
-    await sendText(senderId, `✅ Paiement confirmé (Trans ID: ${pending.transId}) !`, token)
+    await sendText(senderId, '✅ Paiement confirmé !', token)
 
     // Only now advance to waitingGenerate
     const prompt = buildPrompt(state.config)
     state.waitingGenerate = true
     await sendWithQR(senderId,
-      `✅ Tout est configuré !\n\nPrompt :\n${prompt}`,
+      `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
       [{ title: '🎵 Générer', payload: 'générer' }],
       token
     )
@@ -390,7 +390,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     if (nextStep.key === 'payment') {
       // Send payment instructions in separate messages
       await sendText(senderId, nextStep.question, token)
-      await sendWithQR(senderId, 'Clique ci-dessous une fois le paiement effectué 👇', nextStep.quickReplies, token)
+      await sendWithQR(senderId, 'Clique ci-dessous ou envoie "J\'ai payé" une fois le paiement effectué 👇', nextStep.quickReplies, token)
     } else {
       await sendStep(senderId, state.step, token)
     }
