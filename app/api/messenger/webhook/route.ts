@@ -336,18 +336,11 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     if (!pending) {
       await sendText(senderId,
         '⏳ Nous n\'avons pas encore reçu la confirmation de ton paiement.\n' +
-        'Attends quelques secondes et réessaie en envoyant "générer".\n' +
+        'Attends quelques secondes puis clique à nouveau sur "✅ J\'ai payé".\n' +
         'Si le problème persiste, contacte le support.',
         token
       )
-      // Advance to waitingGenerate so they can retry later
-      state.step++
-      const prompt = buildPrompt(state.config)
-      state.waitingGenerate = true
-      await sendText(senderId,
-        `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
-        token
-      )
+      // DO NOT advance — stay on payment step so user can retry
       return
     }
 
