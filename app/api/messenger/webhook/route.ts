@@ -165,6 +165,7 @@ interface ConvState {
   step: number
   config: MusicConfig
   waitingGenerate: boolean
+  paymentId?: string
 }
 
 const conversations = new Map<string, ConvState>()
@@ -254,6 +255,8 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   const prompt = buildPrompt(state.config)
   await sendText(senderId, '🎵 Composition en cours… (30 à 60 secondes)', token)
 
+  let success = false
+
   try {
     const data = await generateMusic(prompt)
 
@@ -282,10 +285,15 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     }
 
     await sendText(senderId, "✅ C'est terminé ! Envoie 'recommencer' pour créer une nouvelle chanson.", token)
+    success = true
   } catch (err) {
     await sendText(senderId, `❌ Erreur : ${err instanceof Error ? err.message : 'Inconnue'}`, token)
   }
 
+  // Mark payment as used ONLY after successful generation
+  if (success && state.paymentId) {
+    await markPaymentUsed(state.paymentId)
+  }
   conversations.delete(senderId)
 }
 
@@ -355,8 +363,8 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
       return
     }
 
-    // Mark payment as used
-    await markPaymentUsed(pending.id)
+    // Store payment id but do NOT mark as used yet — only after successful generation
+    state.paymentId = pending.id
     await sendText(senderId, '✅ Paiement confirmé !', token)
 
     // Only now advance to waitingGenerate

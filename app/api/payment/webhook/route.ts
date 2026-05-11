@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
     const amountMatch = String(message).match(/(\d[\d\s]*)\s*Ar/i)
     const amount = amountMatch ? parseInt(amountMatch[1].replace(/\s/g, ''), 10) : 0
 
-    // Extract Trans Id — matches "Trans Id: MP251020.1417.B29719"
-    const transMatch = String(message).match(/Trans\s*Id:\s*([A-Z0-9.]+)/i)
+    // Extract Ref / Trans Id — matches "Ref : 123564564" or "Trans Id: MP251020.1417.B29719"
+    const transMatch = String(message).match(/(?:Ref|Trans\s*Id)\s*:\s*([A-Z0-9.]+)/i)
     const transId = transMatch ? transMatch[1] : 'unknown'
 
     // Extract customer phone from message text, NOT from phonenumber field
