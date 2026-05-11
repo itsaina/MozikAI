@@ -151,7 +151,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'payment',
-    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCompose selon ton opérateur :\n• MVola (Telma) : #111\n• Orange Money : *144#\n• Airtel Money : *150#\n\nPuis suis les instructions pour envoyer de l'argent.\n\nUne fois fait, clique ci-dessous 👇",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900.\n\nCompose selon ton opérateur puis suis les instructions pour envoyer de l'argent.",
     quickReplies: [
       { title: '✅ J\'ai payé', payload: 'payé' },
       { title: '❌ Annuler', payload: 'annuler' },
@@ -204,6 +204,9 @@ async function sendAudio(recipientId: string, audioUrl: string, token: string) {
 
 async function sendStep(recipientId: string, stepIdx: number, token: string) {
   const step = STEPS[stepIdx]
+  if (step.quickReplies.length === 0) {
+    return sendText(recipientId, step.question, token)
+  }
   return sendWithQR(recipientId, step.question, step.quickReplies, token)
 }
 
@@ -386,7 +389,21 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   state.step++
 
   if (state.step < STEPS.length) {
-    await sendStep(senderId, state.step, token)
+    const nextStep = STEPS[state.step]
+    if (nextStep.key === 'payment') {
+      // Send payment instructions in separate messages for better readability
+      await sendText(senderId, nextStep.question, token)
+      await sendText(senderId,
+        'Codes USSD complets :\n' +
+        '• Airtel Money : *150*1*2*0341486900*2500#\n' +
+        '• MVola (Telma) : *111*1*2*0341486900*2500#\n' +
+        '• Orange Money : *144*1*2*0341486900*2500#',
+        token
+      )
+      await sendWithQR(senderId, 'Une fois le paiement effectué, clique ci-dessous 👇', nextStep.quickReplies, token)
+    } else {
+      await sendStep(senderId, state.step, token)
+    }
   } else {
     // All steps done
     const prompt = buildPrompt(state.config)
