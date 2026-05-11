@@ -13,6 +13,7 @@ interface MusicConfig {
   dynamics: string
   vocals: string
   lyrics: string
+  payment?: string
 }
 
 interface HistoryEntry {
@@ -30,7 +31,7 @@ interface ChatMsg {
 }
 
 const DEFAULT_CONFIG: MusicConfig = {
-  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '',
+  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', payment: '',
 }
 
 // ─── Steps (en français) ──────────────────────────────────────────────────────
@@ -78,6 +79,11 @@ const STEPS: StepDef[] = [
     question: "Tu as des paroles ? Écris-les en bas — ou passe et Lyria les inventera.",
     quickReplies: ['Passer — Lyria s\'en charge'],
     textInput: true,
+  },
+  {
+    key: 'payment',
+    question: "💳 Paiement requis : 2 500 Ar\n\nEnvoie 2 500 Ar au numéro 0341486900.\n\nCodes USSD selon ton opérateur :\n• Airtel Money : *150*1*2*0341486900*2500#\n• MVola (Telma) : *150*2*2*0341486900*2500#\n• Orange Money : *144*2*0341486900*2500#\n\nUne fois le paiement effectué, clique ci-dessous 👇",
+    quickReplies: ['✅ J\'ai payé', '❌ Annuler'],
   },
 ]
 
@@ -540,6 +546,21 @@ export default function Home() {
   const handleQRSelect = useCallback((reply: string) => {
     const stepDef = STEPS[step]
     const isSkip = reply === 'Passer' || reply.startsWith('Passer')
+    const isCancel = reply === '❌ Annuler' || reply === 'Annuler'
+
+    if (isCancel && stepDef.key === 'payment') {
+      setMessages(prev => [...prev, { id: Date.now(), type: 'user', text: '❌ Annuler' }])
+      setBotTyping(true)
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now() + 1, type: 'bot', text: 'Commande annulée. Tu peux recommencer quand tu veux.' }])
+        setBotTyping(false)
+        setStep(0)
+        setConfig(DEFAULT_CONFIG)
+        setDone(false)
+        setLyricsInput('')
+      }, 500)
+      return
+    }
 
     if (stepDef.textInput) {
       advanceStep('Lyria s\'en charge', { lyrics: '' })

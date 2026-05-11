@@ -13,10 +13,11 @@ interface MusicConfig {
   dynamics: string
   vocals: string
   lyrics: string
+  payment?: string
 }
 
 const DEFAULT_CONFIG: MusicConfig = {
-  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '',
+  genre: '', era: '', tempo: '', instrument: '', dynamics: '', vocals: '', lyrics: '', payment: '',
 }
 
 const TEMPO_MAP: Record<string, string> = {
@@ -140,6 +141,14 @@ const STEPS: Step[] = [
     question: "Des paroles ? Envoie-les en message libre.\nSinon tape 'Passer' — Superchat les inventera.",
     quickReplies: [{ title: 'Passer', payload: 'Passer' }],
     textInput: true,
+  },
+  {
+    key: 'payment',
+    question: "💳 Paiement requis : 2 500 Ar\n\nEnvoie 2 500 Ar au numéro 0341486900.\n\nCodes USSD selon ton opérateur :\n• Airtel Money : *150*1*2*0341486900*2500#\n• MVola (Telma) : *150*2*2*0341486900*2500#\n• Orange Money : *144*2*0341486900*2500#\n\nUne fois le paiement effectué, clique ci-dessous 👇",
+    quickReplies: [
+      { title: '✅ J\'ai payé', payload: 'payé' },
+      { title: '❌ Annuler', payload: 'annuler' },
+    ],
   },
 ]
 
@@ -304,6 +313,13 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
   const currentStep = STEPS[state.step]
   const isSkip = reply === 'Passer' || replyLower === 'passer'
+
+  // Handle payment cancellation
+  if (currentStep.key === 'payment' && replyLower === 'annuler') {
+    await sendText(senderId, '❌ Commande annulée. Envoie "recommencer" pour créer une nouvelle chanson.', token)
+    conversations.delete(senderId)
+    return
+  }
 
   // Store the answer
   if (currentStep.textInput) {
