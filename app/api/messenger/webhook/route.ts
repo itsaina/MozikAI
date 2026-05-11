@@ -316,7 +316,11 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
       state.waitingGenerate = false
       await generateAndSend(senderId, state, token, baseUrl)
     } else {
-      await sendText(senderId, "Envoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.", token)
+      await sendWithQR(senderId,
+        "Clique ci-dessous pour lancer la composition 👇",
+        [{ title: '🎵 Générer', payload: 'générer' }],
+        token
+      )
     }
     return
   }
@@ -358,8 +362,9 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     // Only now advance to waitingGenerate
     const prompt = buildPrompt(state.config)
     state.waitingGenerate = true
-    await sendText(senderId,
-      `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
+    await sendWithQR(senderId,
+      `✅ Tout est configuré !\n\nPrompt :\n${prompt}`,
+      [{ title: '🎵 Générer', payload: 'générer' }],
       token
     )
     return
