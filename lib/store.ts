@@ -262,18 +262,24 @@ export async function addPayment(amount: number, senderPhone: string, transId: s
   return record
 }
 
-export async function findPendingPayment(senderPhone: string, expectedAmount: number): Promise<PaymentRecord | null> {
+export async function findPendingPayment(
+  senderPhone: string,
+  expectedAmount: number,
+  tolerance: number = 250
+): Promise<PaymentRecord | null> {
   const normalized = normalizePhone(senderPhone)
+  const minAmount = expectedAmount - tolerance
+  const maxAmount = expectedAmount + tolerance
 
   if (usePg) {
     await initPg()
     const { rows } = await getPool().query(
       `SELECT id, timestamp, amount, sender_phone, trans_id, message, used
        FROM payments
-       WHERE sender_phone = $1 AND used = FALSE AND amount >= $2
+       WHERE sender_phone = $1 AND used = FALSE AND amount >= $2 AND amount <= $3
        ORDER BY timestamp DESC
        LIMIT 1`,
-      [normalized, expectedAmount]
+      [normalized, minAmount, maxAmount]
     )
     if (!rows.length) return null
     const r = rows[0]
@@ -292,7 +298,8 @@ export async function findPendingPayment(senderPhone: string, expectedAmount: nu
   const found = list.find(p =>
     normalizePhone(p.senderPhone) === normalized &&
     !p.used &&
-    p.amount >= expectedAmount
+    p.amount >= minAmount &&
+    p.amount <= maxAmount
   )
   return found ?? null
 }
