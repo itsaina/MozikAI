@@ -73,7 +73,7 @@ interface Step { key: keyof MusicConfig; question: string; quickReplies: QR[]; t
 
 const STEPS: Step[] = [
   {
-    key: 'genre', question: 'Quel genre tu vises ?',
+    key: 'genre', question: 'Karazana (gadona) mozika inona no tianao ?',
     quickReplies: [
       { title: 'Hip-Hop', payload: 'Hip-Hop' }, { title: 'Jazz', payload: 'Jazz' },
       { title: 'Rock', payload: 'Rock' }, { title: 'Pop', payload: 'Pop' },
@@ -85,67 +85,72 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'era', question: 'Une époque en particulier ?',
+    key: 'era', question: 'Taona firy no tianao ? (Karazana mozika tamin\'ny taona firy ?)',
     quickReplies: [
-      { title: '1950s', payload: '1950s' }, { title: '1960s', payload: '1960s' },
-      { title: '1970s', payload: '1970s' }, { title: '1980s', payload: '1980s' },
-      { title: '1990s', payload: '1990s' }, { title: '2000s', payload: '2000s' },
-      { title: '2010s', payload: '2010s' }, { title: '2020s', payload: '2020s' },
-      { title: 'Contemporain', payload: 'Contemporain' },
-      { title: 'Avant 1950', payload: 'Avant 1950' },
+      { title: 'Taona 1950', payload: '1950s' }, { title: 'Taona 1960', payload: '1960s' },
+      { title: 'Taona 1970', payload: '1970s' }, { title: 'Taona 1980', payload: '1980s' },
+      { title: 'Taona 1990', payload: '1990s' }, { title: 'Taona 2000', payload: '2000s' },
+      { title: 'Taona 2010', payload: '2010s' }, { title: 'Taona 2020', payload: '2020s' },
+      { title: 'Ankehitriny', payload: 'Contemporain' },
+      { title: 'Talohan\'ny 1950', payload: 'Avant 1950' },
       { title: 'Passer', payload: 'Passer' },
+      { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
   },
   {
-    key: 'tempo', question: 'Quel tempo tu cherches ?',
+    key: 'tempo', question: 'Hafainganina (tempo) inona ?',
     quickReplies: [
-      { title: 'Très lent', payload: 'Très lent' }, { title: 'Lent', payload: 'Lent' },
-      { title: 'Modéré', payload: 'Modéré' }, { title: 'Entraînant', payload: 'Entraînant' },
-      { title: 'Rapide', payload: 'Rapide' }, { title: 'Très rapide', payload: 'Très rapide' },
+      { title: 'Mora dia mora', payload: 'Très lent' }, { title: 'Mora', payload: 'Lent' },
+      { title: 'Antonony', payload: 'Modéré' }, { title: 'Mampihetsika', payload: 'Entraînant' },
+      { title: 'Haingana', payload: 'Rapide' }, { title: 'Tena haingana', payload: 'Très rapide' },
       { title: 'Passer', payload: 'Passer' },
+      { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
   },
   {
-    key: 'instrument', question: 'Quel son doit dominer ?',
+    key: 'instrument', question: 'Fitaovana mozika inona no tokony ho heno indrindra ? (Afaka misafidy eto ambany ianao na manoratra ohatra : piano, basse, batterie)',
     quickReplies: [
       { title: 'Guitare', payload: 'Guitare' }, { title: 'Piano', payload: 'Piano' },
       { title: 'Synthés', payload: 'Synthés' }, { title: 'Cordes', payload: 'Cordes' },
       { title: 'Cuivres', payload: 'Cuivres' }, { title: 'Batterie', payload: 'Batterie' },
       { title: 'Basse', payload: 'Basse' }, { title: 'Groupe complet', payload: 'Groupe complet' },
       { title: 'Passer', payload: 'Passer' },
+      { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
   },
   {
-    key: 'dynamics', question: "Comment l'énergie doit évoluer ?",
+    key: 'dynamics', question: "Ahoana ny fiovan'ny herin'ny hira ?",
     quickReplies: [
-      { title: 'Monte au refrain', payload: 'Monte vers le refrain' },
-      { title: 'Puissance constante', payload: 'Puissance constante' },
-      { title: 'Couplets calmes', payload: 'Couplets calmes' },
-      { title: 'Descend en douceur', payload: 'Descend en douceur' },
-      { title: 'Voix tardive', payload: 'Voix tardive' },
-      { title: 'Calme', payload: 'Calme du début à la fin' },
+      { title: 'Miakatra @ refrain', payload: 'Monte vers le refrain' },
+      { title: 'Hery tsy miova', payload: 'Puissance constante' },
+      { title: 'Tononkira milamina', payload: 'Couplets calmes' },
+      { title: 'Midina moramora', payload: 'Descend en douceur' },
+      { title: 'Feo tara', payload: 'Voix tardive' },
+      { title: 'Milamina hatrany', payload: 'Calme du début à la fin' },
       { title: 'Passer', payload: 'Passer' },
+      { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
   },
   {
-    key: 'vocals', question: 'Quel type de voix ?',
+    key: 'vocals', question: 'Karazana feo inona ? (lehilahy mihira, vehivavy mihira, duo lehilahy sy vehivavy)',
     quickReplies: [
-      { title: 'Voix masculine', payload: 'Voix masculine' },
-      { title: 'Voix féminine', payload: 'Voix féminine' },
-      { title: 'Voix mixtes', payload: 'Voix mixtes' },
+      { title: 'Lehilahy mihira', payload: 'Voix masculine' },
+      { title: 'Vehivavy mihira', payload: 'Voix féminine' },
+      { title: 'Lehilahy sy vehivavy (Duo)', payload: 'Voix mixtes' },
       { title: 'Instrumental', payload: 'Instrumental' },
       { title: 'Passer', payload: 'Passer' },
+      { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
   },
   {
     key: 'lyrics',
-    question: "Des paroles ? Envoie-les en message libre.\nSinon tape 'Passer' — Superchat les inventera.",
+    question: "Misy tononkira manokana ? Raha misy, soraty eto. Raha tsia, tsindrio ny Passer",
     quickReplies: [{ title: 'Passer', payload: 'Passer' }],
     textInput: true,
   },
   {
     key: 'payment',
-    question: 'Quel numéro as-tu utilisé pour payer ?',
+    question: 'Laharana firy  (numéro de téléphone) no nampiasainao nandoavana ? Anaovana vérification.',
     quickReplies: [],
     textInput: true,
   },
@@ -245,7 +250,7 @@ function getPublicBaseUrl(req: NextRequest): string {
 
 async function generateAndSend(senderId: string, state: ConvState, token: string, baseUrl: string) {
   const prompt = buildPrompt(state.config)
-  await sendText(senderId, '🎵 Composition en cours… (30 à 60 secondes)', token)
+  await sendText(senderId, '🎵 Fanamboarana hira… (30 hatramin\'ny 60 segondra)', token)
 
   let success = false
 
@@ -276,7 +281,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
       return
     }
 
-    await sendText(senderId, "✅ C'est terminé ! Envoie 'recommencer' pour créer une nouvelle chanson.", token)
+    await sendText(senderId, "✅ Vita ! Alefaso 'Recommencer' raha hamorona hira vaovao.", token)
     success = true
   } catch (err) {
     await sendText(senderId, `❌ Erreur : ${err instanceof Error ? err.message : 'Inconnue'}`, token)
@@ -296,43 +301,53 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   const replyLower = reply.toLowerCase()
 
   // Reset triggers
-  if (['recommencer', 'restart', 'start', 'bonjour', 'salut', 'hello', 'menu', 'début'].includes(replyLower)) {
+  if (['recommencer', 'restart', 'start', 'bonjour', 'salut', 'hello', 'menu', 'Salama', 'début'].includes(replyLower)) {
     conversations.delete(senderId)
   }
 
   // New conversation
   if (!conversations.has(senderId)) {
     conversations.set(senderId, { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false })
-    await sendText(senderId, "🎵 Bienvenue sur MozikAI ! Je vais t'aider à composer une chanson en quelques questions.", token)
+    await sendText(senderId, "🎵 Tonga soa eto amin'ny MozikAI ! Hanampy anao hamorona hira amin'ny alalan'ny fanontaniana vitsivitsy izahay.", token)
     await sendStep(senderId, 0, token)
     return
   }
 
   const state = conversations.get(senderId)!
 
-  // Waiting for "générer" confirmation
+  // Waiting for "générer" confirmation (disabled – auto-generation only)
   if (state.waitingGenerate) {
-    if (['générer', 'generer', 'oui', 'go', 'lancer', 'ok'].includes(replyLower)) {
-      state.waitingGenerate = false
-      await generateAndSend(senderId, state, token, baseUrl)
-    } else {
-      await sendWithQR(senderId,
-        "Clique ci-dessous pour lancer la composition 👇",
-        [{ title: '🎵 Générer', payload: 'générer' }],
-        token
-      )
-    }
+    await generateAndSend(senderId, state, token, baseUrl)
     return
   }
 
   const currentStep = STEPS[state.step]
   const isSkip = reply === 'Passer' || replyLower === 'passer'
 
-  // ── Payment step is ALWAYS verified, no matter what the user sends ──
+  // ── Payment step with phone normalization ──
   if (currentStep.key === 'payment') {
-    const phone = msgText.trim()
-    if (!phone.match(/^0[3][2-9]\d{7}$/)) {
-      await sendText(senderId, '❌ Numéro invalide. Envoie ton numéro au format 0326084829.', token)
+    let phone = msgText.trim()
+
+    // 1. Remove all spaces, dashes, dots, parentheses
+    phone = phone.replace(/[\s\-\.\(\)]/g, '')
+
+    // 2. Handle +261 / 261 formats
+    if (phone.startsWith('+261')) {
+      phone = '0' + phone.substring(4)
+    } else if (phone.startsWith('261')) {
+      phone = '0' + phone.substring(3)
+    } else if (phone.startsWith('03') && phone.length === 10) {
+      // already correct format
+    } else if (phone.length === 9 && phone.startsWith('3')) {
+      phone = '0' + phone
+    } else {
+      await sendText(senderId, '❌ Misy diso ny laharana (numéro téléphone). Ampiasao endrika 034 XX XXX XX', token)
+      return
+    }
+
+    // Final validation: must start with 034, 032, 033, 038, 039...
+    if (!phone.match(/^03[2-9]\d{7}$/)) {
+      await sendText(senderId, '❌ Misy diso ny laharana. Tokony hanomboka amin\'ny 034, 033, 032, 038, 039.', token)
       return
     }
 
@@ -341,8 +356,8 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     const pending = await findPendingPayment(phone, 2500)
     if (!pending) {
       await sendText(senderId,
-        '⏳ Nous n\'avons pas encore reçu la confirmation de ton paiement.\n' +
-        'Attends quelques secondes puis réenvoie ton numéro.',
+        '⏳ Mbola tsy nahay ny fanamarinana ny fandoavanao izahay.' +
+        'Miandrasa kely ary alefaso indray ny laharanao (numéro nandoavanao).',
         token
       )
       return
@@ -350,16 +365,10 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
     // Store payment id but do NOT mark as used yet — only after successful generation
     state.paymentId = pending.id
-    await sendText(senderId, '✅ Paiement confirmé !', token)
+    await sendText(senderId, '✅ Voamarina ny fandoavanao ! Manomboka ny famoronana hira... ⏳', token)
 
-    // Only now advance to waitingGenerate
-    const prompt = buildPrompt(state.config)
-    state.waitingGenerate = true
-    await sendWithQR(senderId,
-      `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
-      [{ title: '🎵 Générer', payload: 'générer' }],
-      token
-    )
+    // Generate automatically without waiting for "générer"
+    await generateAndSend(senderId, state, token, baseUrl)
     return
   }
 
@@ -378,20 +387,16 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     const nextStep = STEPS[state.step]
     if (nextStep.key === 'payment') {
       // Send payment instructions in separate messages
-      await sendText(senderId, '💳 Pour finaliser, envoie 2 500 Ar avec le code USSD ci-dessous 👇', token)
+      await sendText(senderId, '💳 Mba hamitana ny hira, alefaso ny 2 500 Ar any amin\'ny 034 14 869 00 amin\'ny alalan\'ity code USSD eto ambany ity 👇', token)
       await sendText(senderId, '*111*1*2*0341486900*2500#', token)
       await sendText(senderId, nextStep.question, token)
     } else {
       await sendStep(senderId, state.step, token)
     }
   } else {
-    // All steps done
-    const prompt = buildPrompt(state.config)
-    state.waitingGenerate = true
-    await sendText(senderId,
-      `✅ Tout est configuré !\n\nPrompt :\n${prompt}\n\nEnvoie 'générer' pour lancer la composition, ou 'recommencer' pour tout refaire.`,
-      token
-    )
+    // All steps done → generate automatically
+    await sendText(senderId, '✅ Manomboka ny famoronana hira... ⏳', token)
+    await generateAndSend(senderId, state, token, baseUrl)
   }
 }
 
