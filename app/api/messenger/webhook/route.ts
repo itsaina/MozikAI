@@ -156,7 +156,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'lyrics',
-    question: "Misy tononkira manokana ? Raha misy, soraty eto. Raha tsia, tsindrio ny Passer",
+    question: "Afaka soraty ny tononkiranao eto, na tsindrio ny Passer ary hamorona ho anao izahay 🎶",
     quickReplies: [{ title: 'Passer', payload: 'Passer' }],
     textInput: true,
   },
