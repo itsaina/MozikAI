@@ -49,6 +49,10 @@ const VOCALS_MAP: Record<string, string> = {
 }
 const GENRE_MAP: Record<string, string> = { 'Électro': 'Electronic', 'Classique': 'Classical' }
 
+function stripEmojis(text: string): string {
+  return text.replace(/\p{Emoji}/gu, '').replace(/\s+/g, ' ').trim()
+}
+
 function buildPrompt(c: MusicConfig): string {
   const parts: string[] = []
   const genreEn = GENRE_MAP[c.genre] ?? c.genre
@@ -60,7 +64,8 @@ function buildPrompt(c: MusicConfig): string {
   if (c.vocals) parts.push(VOCALS_MAP[c.vocals] ?? c.vocals)
   let prompt = parts.join(', ')
   if (c.lyrics.trim()) {
-    const lines = c.lyrics.trim().split('\n').filter(Boolean).join(' / ')
+    const cleanLyrics = stripEmojis(c.lyrics)
+    const lines = cleanLyrics.split('\n').filter(Boolean).join(' / ')
     prompt += `\n\nLyrics: ${lines}`
   }
   return prompt
