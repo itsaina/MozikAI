@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import crypto from 'crypto'
+import { initDb, logMessage } from '@/lib/db'
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 
@@ -295,7 +296,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   // New conversation
   if (!conversations.has(senderId)) {
     conversations.set(senderId, { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false })
-    await sendText(senderId, "🎵 Bienvenue sur MozikAI ! Je vais t'aider à composer une chanson en quelques questions.")
+    await sendText(senderId, "🎵 Bienvenue sur MozikAI ! Je vais t'aider à composer une chanson en quelques questions.", token)
     await sendStep(senderId, 0, token)
     return
   }
@@ -400,6 +401,11 @@ export async function POST(req: NextRequest) {
 
       const msgText = event.message.text ?? ''
       const qrPayload = event.message.quick_reply?.payload ?? null
+
+      // Log every incoming message to Postgres
+      initDb()
+        .then(() => logMessage(senderId, msgText, qrPayload))
+        .catch(err => console.error('[db] logMessage failed:', err))
 
       // Handle async — don't await here so we return 200 fast
       handleMessage(senderId, msgText, qrPayload, settings.pageAccessToken, baseUrl).catch(console.error)
