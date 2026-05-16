@@ -48,7 +48,7 @@ const STEPS: StepDef[] = [
   {
     key: 'genre',
     question: 'Quel genre tu vises ?',
-    quickReplies: ['Salegy', 'Afrobeat', 'Reggae', 'Trap', 'Hip-Hop', 'Pop', 'R&B', 'Jazz', 'Rock', 'Électro', 'Funk', 'Soul', 'Classique', 'Passer'],
+    quickReplies: ['Salegy', 'Afrobeat', 'Reggae', 'Trap', 'Hira fivavahana', 'Chorale', 'Hip-Hop', 'Pop', 'R&B', 'Jazz', 'Rock', 'Électro', 'Classique', 'Passer'],
   },
   {
     key: 'era',
@@ -139,6 +139,8 @@ const GENRE_MAP: Record<string, string> = {
   'Afrobeat': 'Afrobeat',
   'Reggae': 'Reggae',
   'Trap': 'Trap',
+  'Hira fivavahana': 'Malagasy gospel worship music, spiritual and devotional',
+  'Chorale': 'Choral music with choir voices, harmonized vocal arrangements',
 }
 
 function buildPrompt(c: MusicConfig): string {
