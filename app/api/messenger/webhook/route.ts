@@ -127,7 +127,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'instrument', question: '(Dingana 4/7) Fitaovana mozika inona no tokony ho heno indrindra ? (Afaka misafidy eto ambany ianao na manoratra ohatra : piano, basse, batterie)',
+    key: 'instrument', question: '(Dingana 4/7) Fitaovana mozika inona avy no tianao ho heno indrindra ?\n(Afaka misafidy maromaro eto ambany ianao, na manoratra ohatra: piano, basse, batterie, gitara, sns.)',
     quickReplies: [
       { title: 'Guitare', payload: 'Guitare' }, { title: 'Piano', payload: 'Piano' },
       { title: 'Synthés', payload: 'Synthés' }, { title: 'Cordes', payload: 'Cordes' },
