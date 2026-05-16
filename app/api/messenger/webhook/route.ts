@@ -114,11 +114,14 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'tempo', question: '(Dingana 3/7) Hafainganina (tempo) inona ?',
+    key: 'tempo', question: '(Dingana 3/7) Hafainganina (tempo) inona ?\n(Ohatra: hira miadana, hira antonony, hira haingana, hira rythmée / mampandihy)',
     quickReplies: [
-      { title: 'Mora dia mora', payload: 'Très lent' }, { title: 'Mora', payload: 'Lent' },
-      { title: 'Antonony', payload: 'Modéré' }, { title: 'Mampihetsika', payload: 'Entraînant' },
-      { title: 'Haingana', payload: 'Rapide' }, { title: 'Tena haingana', payload: 'Très rapide' },
+      { title: 'Hira miadana', payload: 'Lent' },
+      { title: 'Hira antonony', payload: 'Modéré' },
+      { title: 'Hira haingana', payload: 'Rapide' },
+      { title: 'Mampandihy', payload: 'Entraînant' },
+      { title: 'Mora dia mora', payload: 'Très lent' },
+      { title: 'Tena haingana', payload: 'Très rapide' },
       { title: 'Passer', payload: 'Passer' },
       { title: '🔄 Recommencer', payload: 'recommencer' },
     ],
