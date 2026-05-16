@@ -87,7 +87,7 @@ interface Step { key: keyof MusicConfig; question: string; quickReplies: QR[]; t
 
 const STEPS: Step[] = [
   {
-    key: 'genre', question: '(1/7) Karazana (gadona) mozika inona no tianao ?',
+    key: 'genre', question: '(Dingana 1/7) Karazana (gadona) mozika inona no tianao ?',
     quickReplies: [
       { title: 'Salegy', payload: 'Salegy' }, { title: 'Afrobeat', payload: 'Afrobeat' },
       { title: 'Reggae', payload: 'Reggae' }, { title: 'Trap', payload: 'Trap' },
@@ -101,7 +101,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'era', question: '(2/7) Taona firy no tianao ? (Karazana mozika tamin\'ny taona firy ?)',
+    key: 'era', question: '(Dingana 2/7) Taona firy no tianao ? (Karazana mozika tamin\'ny taona firy ?)',
     quickReplies: [
       { title: 'Taona 1950', payload: '1950s' }, { title: 'Taona 1960', payload: '1960s' },
       { title: 'Taona 1970', payload: '1970s' }, { title: 'Taona 1980', payload: '1980s' },
@@ -114,7 +114,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'tempo', question: '(3/7) Hafainganina (tempo) inona ?',
+    key: 'tempo', question: '(Dingana 3/7) Hafainganina (tempo) inona ?',
     quickReplies: [
       { title: 'Mora dia mora', payload: 'Très lent' }, { title: 'Mora', payload: 'Lent' },
       { title: 'Antonony', payload: 'Modéré' }, { title: 'Mampihetsika', payload: 'Entraînant' },
@@ -124,7 +124,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'instrument', question: '(4/7) Fitaovana mozika inona no tokony ho heno indrindra ? (Afaka misafidy eto ambany ianao na manoratra ohatra : piano, basse, batterie)',
+    key: 'instrument', question: '(Dingana 4/7) Fitaovana mozika inona no tokony ho heno indrindra ? (Afaka misafidy eto ambany ianao na manoratra ohatra : piano, basse, batterie)',
     quickReplies: [
       { title: 'Guitare', payload: 'Guitare' }, { title: 'Piano', payload: 'Piano' },
       { title: 'Synthés', payload: 'Synthés' }, { title: 'Cordes', payload: 'Cordes' },
@@ -135,7 +135,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'dynamics', question: "(5/7) Ahoana ny fiovan'ny herin'ny hira ?",
+    key: 'dynamics', question: "(Dingana 5/7) Ahoana ny fiovan'ny herin'ny hira ?",
     quickReplies: [
       { title: 'Miakatra @ refrain', payload: 'Monte vers le refrain' },
       { title: 'Hery tsy miova', payload: 'Puissance constante' },
@@ -148,7 +148,7 @@ const STEPS: Step[] = [
     ],
   },
   {
-    key: 'vocals', question: '(6/7) Karazana feo inona ? (lehilahy mihira, vehivavy mihira, duo lehilahy sy vehivavy)',
+    key: 'vocals', question: '(Dingana 6/7) Karazana feo inona ? (lehilahy mihira, vehivavy mihira, duo lehilahy sy vehivavy)',
     quickReplies: [
       { title: 'Lehilahy mihira', payload: 'Voix masculine' },
       { title: 'Vehivavy mihira', payload: 'Voix féminine' },
@@ -160,7 +160,7 @@ const STEPS: Step[] = [
   },
   {
     key: 'lyrics',
-    question: "(7/7) Afaka soraty ny tononkiranao eto, na tsindrio ny Passer ary hamorona ho anao izahay 🎶",
+    question: "(Dingana 7/7) Afaka soraty ny tononkiranao eto, na tsindrio ny Passer ary hamorona ho anao izahay 🎶",
     quickReplies: [{ title: 'Passer', payload: 'Passer' }],
     textInput: true,
   },
