@@ -47,7 +47,14 @@ const VOCALS_MAP: Record<string, string> = {
   'Voix mixtes': 'male and female vocalists in harmony',
   'Instrumental': 'purely instrumental, no vocals',
 }
-const GENRE_MAP: Record<string, string> = { 'Électro': 'Electronic', 'Classique': 'Classical' }
+const GENRE_MAP: Record<string, string> = {
+  'Électro': 'Electronic',
+  'Classique': 'Classical',
+  'Salegy': 'Salegy (traditional Malagasy dance music)',
+  'Afrobeat': 'Afrobeat',
+  'Reggae': 'Reggae',
+  'Trap': 'Trap',
+}
 
 function stripEmojis(text: string): string {
   return text.replace(/\p{Emoji}/gu, '').replace(/\s+/g, ' ').trim()
@@ -80,11 +87,11 @@ const STEPS: Step[] = [
   {
     key: 'genre', question: 'Karazana (gadona) mozika inona no tianao ?',
     quickReplies: [
-      { title: 'Hip-Hop', payload: 'Hip-Hop' }, { title: 'Jazz', payload: 'Jazz' },
-      { title: 'Rock', payload: 'Rock' }, { title: 'Pop', payload: 'Pop' },
-      { title: 'Électro', payload: 'Électro' }, { title: 'R&B', payload: 'R&B' },
-      { title: 'Classique', payload: 'Classique' }, { title: 'Folk', payload: 'Folk' },
-      { title: 'Country', payload: 'Country' }, { title: 'K-Pop', payload: 'K-Pop' },
+      { title: 'Salegy', payload: 'Salegy' }, { title: 'Afrobeat', payload: 'Afrobeat' },
+      { title: 'Reggae', payload: 'Reggae' }, { title: 'Trap', payload: 'Trap' },
+      { title: 'Hip-Hop', payload: 'Hip-Hop' }, { title: 'Pop', payload: 'Pop' },
+      { title: 'R&B', payload: 'R&B' }, { title: 'Jazz', payload: 'Jazz' },
+      { title: 'Rock', payload: 'Rock' }, { title: 'Électro', payload: 'Électro' },
       { title: 'Funk', payload: 'Funk' }, { title: 'Soul', payload: 'Soul' },
       { title: 'Passer', payload: 'Passer' },
     ],

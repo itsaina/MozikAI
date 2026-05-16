@@ -48,7 +48,7 @@ const STEPS: StepDef[] = [
   {
     key: 'genre',
     question: 'Quel genre tu vises ?',
-    quickReplies: ['Hip-Hop', 'Jazz', 'Rock', 'Pop', 'Électro', 'R&B', 'Classique', 'Folk', 'Country', 'K-Pop', 'Funk', 'Soul', 'Passer'],
+    quickReplies: ['Salegy', 'Afrobeat', 'Reggae', 'Trap', 'Hip-Hop', 'Pop', 'R&B', 'Jazz', 'Rock', 'Électro', 'Funk', 'Soul', 'Classique', 'Passer'],
   },
   {
     key: 'era',
@@ -135,6 +135,10 @@ const VOCALS_MAP: Record<string, string> = {
 const GENRE_MAP: Record<string, string> = {
   'Électro': 'Electronic',
   'Classique': 'Classical',
+  'Salegy': 'Salegy (traditional Malagasy dance music)',
+  'Afrobeat': 'Afrobeat',
+  'Reggae': 'Reggae',
+  'Trap': 'Trap',
 }
 
 function buildPrompt(c: MusicConfig): string {
