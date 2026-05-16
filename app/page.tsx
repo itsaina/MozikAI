@@ -659,7 +659,7 @@ export default function Home() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-[15px] leading-tight">MozikAI</p>
-            <p className="text-[12px] text-[#0084FF] leading-tight">En ligne · Lyria 3 Pro</p>
+            <p className="text-[12px] text-[#0084FF] leading-tight">En ligne</p>
           </div>
           <div className="flex items-center gap-2">
             <button

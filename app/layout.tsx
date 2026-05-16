@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'MozikAI — Lyria 3 Pro Playground',
-  description: 'Generate music with Google Lyria 3 Pro via OpenRouter',
+  title: 'MozikAI',
+  description: 'Hamorona hira amin\'ny AI',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
