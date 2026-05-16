@@ -415,7 +415,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     if (nextStep.key === 'payment') {
       // Send payment instructions in separate messages
       await sendText(senderId, '💳 Mba hamitana ny hira, alefaso ny 2 500 Ar any amin\'ny 034 14 869 00 amin\'ny alalan\'ity code USSD eto ambany ity 👇', token)
-      await sendText(senderId, '*111*1*2*0341486900*2500#', token)
+      await sendText(senderId, '#111*1*2*0341486900*2500#', token)
       await sendText(senderId, nextStep.question, token)
     } else {
       await sendStep(senderId, state.step, token)

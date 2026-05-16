@@ -89,7 +89,7 @@ const STEPS: StepDef[] = [
   },
   {
     key: 'payment',
-    question: "💳 Envoie 2 500 Ar au numéro 0341486900 via MVola.\n\nCode USSD : *111*1*2*0341486900*2500#",
+    question: "💳 Envoie 2 500 Ar au numéro 0341486900 via MVola.\n\nCode USSD : #111*1*2*0341486900*2500#",
     quickReplies: ['✅ J\'ai payé', '❌ Annuler'],
   },
 ]
