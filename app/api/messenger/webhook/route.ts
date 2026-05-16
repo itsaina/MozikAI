@@ -200,8 +200,11 @@ async function sendWithQR(recipientId: string, text: string, qrs: QR[], token: s
 }
 
 async function sendAudio(recipientId: string, audioUrl: string, token: string) {
-  return sendMsg(recipientId, {
+  await sendMsg(recipientId, {
     attachment: { type: 'audio', payload: { url: audioUrl, is_reusable: true } },
+  }, token)
+  await sendMsg(recipientId, {
+    attachment: { type: 'file', payload: { url: audioUrl, is_reusable: true } },
   }, token)
 }
 
