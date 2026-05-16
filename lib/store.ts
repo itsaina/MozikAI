@@ -1,4 +1,4 @@
-﻿import { Pool } from 'pg'
+import { Pool } from 'pg'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
 

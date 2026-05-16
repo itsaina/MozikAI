@@ -1,4 +1,4 @@
-﻿// Shared music generation logic — called by both /api/generate and Messenger webhook
+// Shared music generation logic — called by both /api/generate and Messenger webhook
 
 export interface GenerateResult {
   audio: string | null
