@@ -15,6 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     headers: {
       'Content-Type': 'audio/mpeg',
       'Content-Length': String(buffer.length),
+      'Content-Disposition': 'attachment; filename="mozikai.mp3"',
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
