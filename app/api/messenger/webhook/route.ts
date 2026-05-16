@@ -168,6 +168,10 @@ const STEPS: Step[] = [
   },
 ]
 
+// ─── Promo sample ────────────────────────────────────────────────────────────
+
+const PROMO_AUDIO_ID = '1778917960448'
+
 // ─── Conversation state (in-memory) ─────────────────────────────────────────
 
 interface ConvState {
@@ -324,6 +328,10 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   if (!conversations.has(senderId)) {
     conversations.set(senderId, { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false })
     await sendText(senderId, "🎵 Tonga soa eto amin'ny MozikAI ! Hanampy anao hamorona hira amin'ny alalan'ny fanontaniana vitsivitsy izahay.", token)
+    await sendText(senderId, "Ity misy ohatra azonao henoina mba hahazoanao hevitra momba ny vokatra azo.", token)
+    await sendMsg(senderId, {
+      attachment: { type: 'audio', payload: { url: `${baseUrl}/api/audio/${PROMO_AUDIO_ID}`, is_reusable: true } },
+    }, token)
     await sendStep(senderId, 0, token)
     return
   }
