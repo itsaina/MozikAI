@@ -1,0 +1,114 @@
+INCIDENT : Audio output requires stream: true
+Date : 2026-05-18
+======================================================
+
+## SYMPTÔME
+
+Des utilisateurs Messenger recevaient le message :
+  ❌ Erreur : Audio output requires stream: true
+
+après avoir payé via Orange Money et attendu leur musique.
+
+## CAUSE RACINE
+
+Le fichier lib/generate.ts (version locale déployée sur Railway) avait perdu
+le paramètre `stream: true` dans l'appel à l'API OpenRouter/Lyria.
+
+La version GitHub avait stream: true, mais la version locale déployée via
+`railway up` ne l'avait plus — c'est cette version locale qui tournait en prod.
+
+Sans stream: true, OpenRouter refuse la requête audio et retourne l'erreur :
+  "Audio output requires stream: true"
+
+Cette erreur était ensuite transmise brute à l'utilisateur via Messenger
+(dans generateAndSend, le catch envoie err.message directement).
+
+De plus, le parsing de la réponse utilisait res.json() directement, alors
+qu'avec stream: true la réponse est au format SSE (Server-Sent Events),
+pas du JSON classique.
+
+## CORRECTION APPORTÉE (lib/generate.ts)
+
+1. Ajout de stream: true dans le body de la requête OpenRouter
+2. Remplacement de res.json() par res.text() + parsing SSE ligne par ligne
+3. Concaténation des chunks audio (delta.audio.data) sur tous les events SSE
+4. Gestion des erreurs embarquées dans le stream (parsed.error)
+
+Déploiement : railway up --service MozikAI --environment production --ci
+Déployé à : 2026-05-18T12:41:51Z (deployment f0585c35)
+
+## UTILISATEURS AFFECTÉS
+
+Identifiés via messenger_messages (messages contenant les phones Orange Money) :
+
+  Phone        | PSID              | Payment ID                  | Montant
+  -------------|-------------------|-----------------------------|---------
+  0383486438   | 27756722833930523 | 1779106134175_c0cm4         | 2650 Ar
+  0335269105   | 26675945248713743 | 1779106135180_ztxlp         | 2500 Ar
+  0340162041   | 35538076665836892 | 1779106132914_gos1i         | 2500 Ar
+  0381937508   | 25819030761107268 | 1779106131665_k8izz         | 2650 Ar
+
+## POURQUOI LES CONVERSATIONS ÉTAIENT PERDUES
+
+Dans generateAndSend (lib/messenger-helpers.ts), même en cas d'erreur :
+  - releasePayment(state.paymentId) est appelé
+  - deleteConvState(senderId) est appelé
+
+Résultat : la config musicale de l'utilisateur est supprimée de la DB
+après l'erreur. Les paiements restent used=false (non consommés).
+
+## APPROCHE DE RÉCUPÉRATION
+
+Étape 1 — Identifier les PSIDs
+  Requête sur messenger_messages pour trouver les facebook_id ayant envoyé
+  les numéros de téléphone correspondant aux paiements non utilisés.
+
+Étape 2 — Reconstruire les configs musicales
+  Les conversations étant supprimées, reconstruction à partir de l'historique
+  des messages (messenger_messages, ordre ASC) via scripts/rebuild_and_generate.mjs.
+  Note : reconstruction approximative car les messages du bot ne sont pas loggés,
+  rendant difficile l'identification exacte de chaque étape.
+
+Étape 3 — Générer et envoyer la musique
+  - Appel à generateMusic(prompt) avec stream: true (version corrigée)
+  - Sauvegarde de l'audio en base (table generations)
+  - Envoi via Facebook Messenger API (audio + fichier téléchargeable)
+  - Marquage du paiement : UPDATE payments SET used = TRUE WHERE id = ...
+
+Résultat :
+  ✅ 0381937508 — musique envoyée, payment used=true
+  ✅ 0383486438 — musique envoyée, payment used=true
+  ✅ 0335269105 — musique envoyée, payment used=true
+  ✅ 0340162041 — musique envoyée, payment used=true
+
+Note : les prompts des 3 premiers étaient approximatifs (config reconstruite
+automatiquement). Si un user se plaint, régénérer manuellement.
+
+## SCRIPTS CRÉÉS
+
+  scripts/fix_stream_errors.mjs       — première version (matching par phone)
+  scripts/find_affected.mjs           — diagnostic des matchs phone/conv
+  scripts/check_match.mjs             — vérification du matching
+  scripts/find_psids.mjs              — identification des PSIDs via messenger_messages
+  scripts/notify_affected.mjs         — notification aux users (remplacé par rebuild)
+  scripts/rebuild_and_generate.mjs    — reconstruction config + génération finale
+  scripts/verify_status.mjs           — vérification du statut de chaque user
+
+## AMÉLIORATIONS RECOMMANDÉES
+
+1. Ne pas appeler deleteConvState en cas d'erreur de génération — garder la
+   config pour permettre une nouvelle tentative automatique.
+
+2. Ne pas envoyer l'erreur technique brute à l'utilisateur. Remplacer :
+     ❌ Erreur : Audio output requires stream: true
+   par :
+     ⚠️ Nisy olana teknika. Haverina ny fanamboarana... (retry automatique)
+
+3. Logger aussi les messages SORTANTS du bot dans messenger_messages pour
+   faciliter le débogage futur (ajouter direction='out').
+
+4. Committer les fichiers locaux sur GitHub avant chaque déploiement via
+   railway up, pour éviter les divergences code local / GitHub.
+
+5. Ajouter un retry automatique (max 3 fois) dans generateAndSend avant
+   d'envoyer un message d'erreur à l'utilisateur.
