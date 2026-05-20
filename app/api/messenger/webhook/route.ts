@@ -217,13 +217,32 @@ async function sendWithQR(recipientId: string, text: string, qrs: QR[], token: s
   }, token)
 }
 
-async function sendAudio(recipientId: string, audioUrl: string, token: string) {
-  await sendMsg(recipientId, {
-    attachment: { type: 'audio', payload: { url: audioUrl, is_reusable: true } },
-  }, token)
-  await sendMsg(recipientId, {
-    attachment: { type: 'file', payload: { url: audioUrl, is_reusable: true } },
-  }, token)
+async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
+
+async function sendAudio(recipientId: string, audioUrl: string, token: string): Promise<{ audioSent: boolean; fileSent: boolean }> {
+  // type:audio — vocal player, best effort (Facebook rejects it sometimes)
+  let audioSent = false
+  try {
+    await sendMsg(recipientId, { attachment: { type: 'audio', payload: { url: audioUrl, is_reusable: true } } }, token)
+    audioSent = true
+  } catch (e) {
+    console.error('[sendAudio] type:audio failed:', e instanceof Error ? e.message : e)
+  }
+
+  // type:file — downloadable mp3, critical, retry up to 3 times
+  let fileSent = false
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await sendMsg(recipientId, { attachment: { type: 'file', payload: { url: audioUrl, is_reusable: true } } }, token)
+      fileSent = true
+      break
+    } catch (e) {
+      console.error(`[sendAudio] type:file attempt ${attempt}/3 failed:`, e instanceof Error ? e.message : e)
+      if (attempt < 3) await sleep(3000 * attempt)
+    }
+  }
+
+  return { audioSent, fileSent }
 }
 
 async function sendStep(recipientId: string, stepIdx: number, token: string) {
@@ -278,45 +297,45 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   const prompt = buildPrompt(state.config)
   await sendText(senderId, '🎵 Fanamboarana hira… (30 hatramin\'ny 60 segondra)', token)
 
-  let success = false
-  let generationId: string | undefined
+  // ── Phase 1 : Generation ──────────────────────────────────────────────────
+  let data: Awaited<ReturnType<typeof generateMusic>>
+  let entry: Awaited<ReturnType<typeof addHistory>> | undefined
 
   try {
-    const data = await generateMusic(prompt)
-
-    let audioUrl = ''
-    if (data.audio) {
-      const entry = await addHistory(prompt, data.audio, data.lyrics ?? null, senderId)
-      generationId = entry.id
-      audioUrl = entry.audioUrl ? `${baseUrl}${entry.audioUrl}` : ''
-      if (audioUrl) await sendAudio(senderId, audioUrl, token)
-    }
-
-    if (data.lyrics) {
-      const formatted = formatLyricsForMessenger(data.lyrics)
-      if (formatted) {
-        await sendText(senderId, `🎶 Paroles générées :\n\n${formatted}`, token)
-      }
-    }
-
-    if (!data.audio && !data.lyrics) {
-      await sendText(senderId, '⚠️ Le modèle n\'a rien retourné. Réessaie.', token)
-      return
-    }
-
-    await sendText(senderId, "✅ Vita ! Alefaso 'Recommencer' raha hamorona hira vaovao.", token)
-    success = true
+    data = await generateMusic(prompt)
+    if (!data.audio && !data.lyrics) throw new Error('Model returned no content')
+    if (data.audio) entry = await addHistory(prompt, data.audio, data.lyrics ?? null, senderId)
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err)
-    await sendText(senderId, `❌ Erreur : ${errMsg}`, token)
+    await sendText(senderId, `❌ Erreur lors de la génération : ${errMsg}`, token)
     await logGenerationError(prompt, senderId, errMsg, state.paymentId)
     if (state.paymentId) await releasePayment(state.paymentId)
+    conversations.delete(senderId)
+    return
   }
 
-  // Record the generation_id on the payment (already claimed by findPendingPayment)
-  if (success && state.paymentId) {
-    await markPaymentUsed(state.paymentId, generationId)
+  // Generation succeeded — link generation_id to payment regardless of delivery outcome
+  if (state.paymentId && entry) await markPaymentUsed(state.paymentId, entry.id)
+
+  // ── Phase 2 : Delivery ────────────────────────────────────────────────────
+  if (entry) {
+    const audioUrl = `${baseUrl}${entry.audioUrl}`
+    const { audioSent, fileSent } = await sendAudio(senderId, audioUrl, token)
+    console.log(`[delivery] sender:${senderId} gen:${entry.id} audio:${audioSent} file:${fileSent}`)
+
+    if (!fileSent) {
+      // MP3 not delivered after all retries — send direct link as fallback
+      console.error(`[delivery] FAILED for sender:${senderId} gen:${entry.id}`)
+      await sendText(senderId, `⚠️ Tsy afaka nandefa ny hira mivantana izahay. Tsindrio ity rohy ity hahazo azy : ${audioUrl}`, token)
+    }
   }
+
+  if (data!.lyrics) {
+    const formatted = formatLyricsForMessenger(data!.lyrics)
+    if (formatted) await sendText(senderId, `🎶 Paroles générées :\n\n${formatted}`, token)
+  }
+
+  await sendText(senderId, "✅ Vita ! Alefaso 'Recommencer' raha hamorona hira vaovao.", token)
   conversations.delete(senderId)
 }
 
