@@ -282,12 +282,16 @@ export async function findPendingPayment(
 
   if (usePg) {
     await initPg()
+    // Atomic claim: UPDATE WHERE used=FALSE so concurrent requests can't claim the same payment
     const { rows } = await getPool().query(
-      `SELECT id, timestamp, amount, sender_phone, trans_id, message, used
-       FROM payments
-       WHERE sender_phone = $1 AND used = FALSE AND amount >= $2 AND amount <= $3
-       ORDER BY timestamp DESC
-       LIMIT 1`,
+      `UPDATE payments SET used = TRUE
+       WHERE id = (
+         SELECT id FROM payments
+         WHERE sender_phone = $1 AND used = FALSE AND amount >= $2 AND amount <= $3
+         ORDER BY timestamp DESC
+         LIMIT 1
+       )
+       RETURNING id, timestamp, amount, sender_phone, trans_id, message, used`,
       [normalized, minAmount, maxAmount]
     )
     if (!rows.length) return null
@@ -316,12 +320,25 @@ export async function findPendingPayment(
 export async function markPaymentUsed(id: string, generationId?: string): Promise<void> {
   if (usePg) {
     await initPg()
-    await getPool().query('UPDATE payments SET used = TRUE, generation_id = $2 WHERE id = $1', [id, generationId ?? null])
+    // Payment already claimed by findPendingPayment — just record the generation_id
+    await getPool().query('UPDATE payments SET generation_id = $2 WHERE id = $1', [id, generationId ?? null])
     return
   }
 
   const list = readFsPayments()
   const updated = list.map(p => p.id === id ? { ...p, used: true } : p)
+  writeFsPayments(updated)
+}
+
+export async function releasePayment(id: string): Promise<void> {
+  if (usePg) {
+    await initPg()
+    await getPool().query('UPDATE payments SET used = FALSE WHERE id = $1', [id])
+    return
+  }
+
+  const list = readFsPayments()
+  const updated = list.map(p => p.id === id ? { ...p, used: false } : p)
   writeFsPayments(updated)
 }
 

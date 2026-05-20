@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, logMessage } from '@/lib/store'
+import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, releasePayment, logMessage } from '@/lib/store'
 import { generateMusic } from '@/lib/generate'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
@@ -284,7 +284,6 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   try {
     const data = await generateMusic(prompt)
 
-    // Save to store & send audio — errors propagate so payment is NOT marked used on failure
     let audioUrl = ''
     if (data.audio) {
       const entry = await addHistory(prompt, data.audio, data.lyrics ?? null, senderId)
@@ -309,9 +308,11 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     success = true
   } catch (err) {
     await sendText(senderId, `❌ Erreur : ${err instanceof Error ? err.message : 'Inconnue'}`, token)
+    // Release the payment so the user can retry
+    if (state.paymentId) await releasePayment(state.paymentId)
   }
 
-  // Mark payment as used ONLY after successful generation
+  // Record the generation_id on the payment (already claimed by findPendingPayment)
   if (success && state.paymentId) {
     await markPaymentUsed(state.paymentId, generationId)
   }
@@ -396,7 +397,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
       return
     }
 
-    // Store payment id but do NOT mark as used yet — only after successful generation
+    // Payment already atomically claimed (used=TRUE) by findPendingPayment
     state.paymentId = pending.id
     await sendText(senderId, '✅ Voamarina ny fandoavanao ! Manomboka ny famoronana hira... ⏳', token)
 
