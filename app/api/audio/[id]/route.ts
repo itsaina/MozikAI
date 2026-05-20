@@ -9,7 +9,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return new Response('Not found', { status: 404 })
   }
 
-  const buffer = Buffer.from(base64, 'base64')
+  const raw = base64.startsWith('data:') ? base64.split(',')[1] : base64
+  const buffer = Buffer.from(raw, 'base64')
 
   return new Response(buffer, {
     headers: {
