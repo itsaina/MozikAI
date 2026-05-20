@@ -383,6 +383,11 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
     state.config.phone = phone
 
+    if (phone === '0341486900') {
+      await sendText(senderId, "Laharan'ny Superchat no nosoratanao fa tsy ny anao; soraty azafady ny laharanao nampiasainao nandoavana.", token)
+      return
+    }
+
     const pending = await findPendingPayment(phone, 2500)
     if (!pending) {
       await sendText(senderId,
