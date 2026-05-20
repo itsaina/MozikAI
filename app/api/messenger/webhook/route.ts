@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, releasePayment, logMessage } from '@/lib/store'
+import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, releasePayment, logGenerationError, logMessage } from '@/lib/store'
 import { generateMusic } from '@/lib/generate'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
@@ -307,8 +307,9 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     await sendText(senderId, "✅ Vita ! Alefaso 'Recommencer' raha hamorona hira vaovao.", token)
     success = true
   } catch (err) {
-    await sendText(senderId, `❌ Erreur : ${err instanceof Error ? err.message : 'Inconnue'}`, token)
-    // Release the payment so the user can retry
+    const errMsg = err instanceof Error ? err.message : String(err)
+    await sendText(senderId, `❌ Erreur : ${errMsg}`, token)
+    await logGenerationError(prompt, senderId, errMsg, state.paymentId)
     if (state.paymentId) await releasePayment(state.paymentId)
   }
 

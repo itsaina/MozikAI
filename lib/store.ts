@@ -317,6 +317,18 @@ export async function findPendingPayment(
   return found ?? null
 }
 
+export async function logGenerationError(prompt: string, senderId: string, error: string, paymentId?: string): Promise<void> {
+  const id = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7)
+  console.error(`[generation_error] sender:${senderId} payment:${paymentId ?? 'none'} error:${error} prompt:${prompt.slice(0, 120)}`)
+  if (usePg) {
+    await initPg()
+    await getPool().query(
+      'INSERT INTO generations (id, prompt, sender_id, error) VALUES ($1, $2, $3, $4)',
+      [id, prompt, senderId, error]
+    )
+  }
+}
+
 export async function markPaymentUsed(id: string, generationId?: string): Promise<void> {
   if (usePg) {
     await initPg()
