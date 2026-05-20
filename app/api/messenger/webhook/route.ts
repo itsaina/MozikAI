@@ -283,16 +283,12 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   try {
     const data = await generateMusic(prompt)
 
-    // Save to store & send audio
+    // Save to store & send audio — errors propagate so payment is NOT marked used on failure
     let audioUrl = ''
     if (data.audio) {
-      try {
-        const entry = await addHistory(prompt, data.audio, data.lyrics ?? null)
-        audioUrl = entry.audioUrl ? `${baseUrl}${entry.audioUrl}` : ''
-        if (audioUrl) await sendAudio(senderId, audioUrl, token)
-      } catch {
-        // If audio send fails, continue to lyrics
-      }
+      const entry = await addHistory(prompt, data.audio, data.lyrics ?? null)
+      audioUrl = entry.audioUrl ? `${baseUrl}${entry.audioUrl}` : ''
+      if (audioUrl) await sendAudio(senderId, audioUrl, token)
     }
 
     if (data.lyrics) {

@@ -146,7 +146,7 @@ export async function getHistory(): Promise<HistoryEntry[]> {
 }
 
 export async function addHistory(prompt: string, audio: string | null, lyrics: string | null): Promise<HistoryEntry> {
-  const id = Date.now().toString()
+  const id = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7)
 
   if (usePg) {
     await initPg()
