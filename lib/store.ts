@@ -145,15 +145,15 @@ export async function getHistory(): Promise<HistoryEntry[]> {
   return readIndex()
 }
 
-export async function addHistory(prompt: string, audio: string | null, lyrics: string | null): Promise<HistoryEntry> {
+export async function addHistory(prompt: string, audio: string | null, lyrics: string | null, senderId?: string): Promise<HistoryEntry> {
   const id = Date.now().toString() + '_' + Math.random().toString(36).slice(2, 7)
 
   if (usePg) {
     await initPg()
     const audioBase64 = audio ? audio.replace(/^data:audio\/\w+;base64,/, '') : null
     await getPool().query(
-      'INSERT INTO generations (id, prompt, audio_base64, lyrics) VALUES ($1, $2, $3, $4)',
-      [id, prompt, audioBase64, lyrics]
+      'INSERT INTO generations (id, prompt, audio_base64, lyrics, sender_id) VALUES ($1, $2, $3, $4, $5)',
+      [id, prompt, audioBase64, lyrics, senderId ?? null]
     )
     return {
       id,
@@ -313,10 +313,10 @@ export async function findPendingPayment(
   return found ?? null
 }
 
-export async function markPaymentUsed(id: string): Promise<void> {
+export async function markPaymentUsed(id: string, generationId?: string): Promise<void> {
   if (usePg) {
     await initPg()
-    await getPool().query('UPDATE payments SET used = TRUE WHERE id = $1', [id])
+    await getPool().query('UPDATE payments SET used = TRUE, generation_id = $2 WHERE id = $1', [id, generationId ?? null])
     return
   }
 

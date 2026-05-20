@@ -279,6 +279,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   await sendText(senderId, '🎵 Fanamboarana hira… (30 hatramin\'ny 60 segondra)', token)
 
   let success = false
+  let generationId: string | undefined
 
   try {
     const data = await generateMusic(prompt)
@@ -286,7 +287,8 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     // Save to store & send audio — errors propagate so payment is NOT marked used on failure
     let audioUrl = ''
     if (data.audio) {
-      const entry = await addHistory(prompt, data.audio, data.lyrics ?? null)
+      const entry = await addHistory(prompt, data.audio, data.lyrics ?? null, senderId)
+      generationId = entry.id
       audioUrl = entry.audioUrl ? `${baseUrl}${entry.audioUrl}` : ''
       if (audioUrl) await sendAudio(senderId, audioUrl, token)
     }
@@ -311,7 +313,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
 
   // Mark payment as used ONLY after successful generation
   if (success && state.paymentId) {
-    await markPaymentUsed(state.paymentId)
+    await markPaymentUsed(state.paymentId, generationId)
   }
   conversations.delete(senderId)
 }
