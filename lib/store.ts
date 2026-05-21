@@ -274,7 +274,8 @@ export async function addPayment(amount: number, senderPhone: string, transId: s
 export async function findPendingPayment(
   senderPhone: string,
   expectedAmount: number,
-  tolerance: number = 250
+  tolerance: number = 250,
+  claimedBy?: string
 ): Promise<PaymentRecord | null> {
   const normalized = normalizePhone(senderPhone)
   const minAmount = expectedAmount - tolerance
@@ -282,9 +283,10 @@ export async function findPendingPayment(
 
   if (usePg) {
     await initPg()
-    // Atomic claim: UPDATE WHERE used=FALSE so concurrent requests can't claim the same payment
+    // Atomic claim: UPDATE WHERE used=FALSE so concurrent requests can't claim the same payment.
+    // claimed_by scopes any future release to the original sender only.
     const { rows } = await getPool().query(
-      `UPDATE payments SET used = TRUE
+      `UPDATE payments SET used = TRUE, claimed_by = $4
        WHERE id = (
          SELECT id FROM payments
          WHERE sender_phone = $1 AND used = FALSE AND amount >= $2 AND amount <= $3
@@ -292,7 +294,7 @@ export async function findPendingPayment(
          LIMIT 1
        )
        RETURNING id, timestamp, amount, sender_phone, trans_id, message, used`,
-      [normalized, minAmount, maxAmount]
+      [normalized, minAmount, maxAmount, claimedBy ?? null]
     )
     if (!rows.length) return null
     const r = rows[0]
@@ -342,10 +344,14 @@ export async function markPaymentUsed(id: string, generationId?: string): Promis
   writeFsPayments(updated)
 }
 
-export async function releasePayment(id: string): Promise<void> {
+export async function releasePayment(id: string, claimedBy?: string): Promise<void> {
   if (usePg) {
     await initPg()
-    await getPool().query('UPDATE payments SET used = FALSE WHERE id = $1', [id])
+    // Only release if the original claimer is releasing — prevents cross-user reclaims.
+    await getPool().query(
+      'UPDATE payments SET used = FALSE, claimed_by = NULL WHERE id = $1 AND (claimed_by = $2 OR claimed_by IS NULL)',
+      [id, claimedBy ?? null]
+    )
     return
   }
 

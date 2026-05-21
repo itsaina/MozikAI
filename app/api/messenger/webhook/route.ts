@@ -309,7 +309,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     const errMsg = err instanceof Error ? err.message : String(err)
     await sendText(senderId, `❌ Erreur lors de la génération : ${errMsg}`, token)
     await logGenerationError(prompt, senderId, errMsg, state.paymentId)
-    if (state.paymentId) await releasePayment(state.paymentId)
+    if (state.paymentId) await releasePayment(state.paymentId, senderId)
     conversations.delete(senderId)
     return
   }
@@ -407,7 +407,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
       return
     }
 
-    const pending = await findPendingPayment(phone, 2500)
+    const pending = await findPendingPayment(phone, 2500, 250, senderId)
     if (!pending) {
       await sendText(senderId,
         '⏳ Mbola tsy nahay ny fanamarinana ny fandoavanao izahay.' +
