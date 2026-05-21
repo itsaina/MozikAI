@@ -1,6 +1,7 @@
 import { Pool } from 'pg'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
+import { compressAudioBase64 } from './compress'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -150,7 +151,14 @@ export async function addHistory(prompt: string, audio: string | null, lyrics: s
 
   if (usePg) {
     await initPg()
-    const audioBase64 = audio ? audio.replace(/^data:audio\/\w+;base64,/, '') : null
+    let audioBase64 = audio ? audio.replace(/^data:audio\/\w+;base64,/, '') : null
+    if (audioBase64) {
+      try {
+        audioBase64 = await compressAudioBase64(audioBase64)
+      } catch (err) {
+        console.warn('[addHistory] compression failed, storing original:', err)
+      }
+    }
     await getPool().query(
       'INSERT INTO generations (id, prompt, audio_base64, lyrics, sender_id) VALUES ($1, $2, $3, $4, $5)',
       [id, prompt, audioBase64, lyrics, senderId ?? null]
