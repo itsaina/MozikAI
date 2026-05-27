@@ -137,7 +137,7 @@ export async function getHistory(): Promise<HistoryEntry[]> {
       id: r.id,
       timestamp: r.timestamp,
       prompt: r.prompt,
-      audioUrl: r.audio_base64 ? `/api/audio/${r.id}` : '',
+      audioUrl: r.audio_base64 ? `/api/audio/${r.id}.mp3` : '',
       lyrics: r.lyrics ?? null,
     }))
   }
@@ -167,7 +167,7 @@ export async function addHistory(prompt: string, audio: string | null, lyrics: s
       id,
       timestamp: new Date().toISOString(),
       prompt,
-      audioUrl: audioBase64 ? `/api/audio/${id}` : '',
+      audioUrl: audioBase64 ? `/api/audio/${id}.mp3` : '',
       lyrics: lyrics ?? null,
     }
   }

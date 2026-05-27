@@ -356,7 +356,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     await sendText(senderId, "🎵 Tonga soa eto amin'ny MozikAI ! Hanampy anao hamorona hira amin'ny alalan'ny fanontaniana vitsivitsy izahay.", token)
     await sendText(senderId, "Ity misy ohatra azonao henoina mba hahazoanao hevitra momba ny vokatra azo.", token)
     await sendMsg(senderId, {
-      attachment: { type: 'audio', payload: { url: `${baseUrl}/api/audio/${PROMO_AUDIO_ID}`, is_reusable: true } },
+      attachment: { type: 'audio', payload: { url: `${baseUrl}/api/audio/${PROMO_AUDIO_ID}.mp3`, is_reusable: true } },
     }, token)
     await sendStep(senderId, 0, token)
     return

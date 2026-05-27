@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { getAudioBase64 } from '@/lib/store'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+  const { id: rawId } = await params
+  const id = rawId.replace(/\.mp3$/i, '')
   const base64 = await getAudioBase64(id)
 
   if (!base64) {
@@ -16,7 +17,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     headers: {
       'Content-Type': 'audio/mpeg',
       'Content-Length': String(buffer.length),
-      'Content-Disposition': `attachment; filename="${id}.mp3"`,
+      'Content-Disposition': `inline; filename="${id}.mp3"`,
+      'Accept-Ranges': 'bytes',
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
