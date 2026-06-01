@@ -1,8 +1,12 @@
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffmpeg from 'fluent-ffmpeg'
 import { PassThrough, Readable } from 'stream'
 
-ffmpeg.setFfmpegPath(ffmpegInstaller.path)
+// Use system ffmpeg (installed via apk in the Dockerfile).
+// @ffmpeg-installer was unreliable on Alpine — the linux-x64 optional dep
+// was missing from /app/node_modules and broke every build since May 21.
+if (process.env.FFMPEG_PATH) {
+  ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH)
+}
 
 // Re-encode MP3 at 96kbps — reduces ~10MB files to ~2-3MB without audible quality loss.
 // Returns base64 string (no data: prefix).
