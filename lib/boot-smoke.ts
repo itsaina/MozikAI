@@ -1,4 +1,8 @@
-import { Pool } from 'pg'
+// Boot-time smoke test for the audio pipeline.
+// We load `pg` via eval-require so it stays out of the webpack edge bundle
+// (which lacks fs/path/stream that pg + pgpass require).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PgPool = any
 
 export async function runBootSmokeTest(): Promise<void> {
   console.log('[boot-smoke] starting')
@@ -8,10 +12,18 @@ export async function runBootSmokeTest(): Promise<void> {
     return
   }
 
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  })
+  let pool: PgPool
+  try {
+    const nodeRequire = eval('require') as NodeRequire
+    const { Pool } = nodeRequire('pg')
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    })
+  } catch (err) {
+    console.error('[boot-smoke] cannot load pg:', err instanceof Error ? err.message : err)
+    return
+  }
 
   try {
     await pool.query('SELECT 1')

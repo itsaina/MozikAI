@@ -1,12 +1,12 @@
-// Defeat webpack static analysis: the dynamic path stops webpack from following
-// boot-smoke.ts → pg → pgpass into the edge bundle (which lacks fs/path/stream).
+// Boot smoke test — runs once at server startup.
+// boot-smoke.ts intentionally avoids importing pg at module top so webpack
+// can include it in the bundle without pulling pg into the edge runtime.
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
-  const path = ['.', 'lib', 'boot-smoke'].join('/')
   try {
-    const mod = await import(/* webpackIgnore: true */ path)
-    mod.runBootSmokeTest().catch((err: unknown) => console.error('[boot-smoke]', err))
+    const { runBootSmokeTest } = await import('./lib/boot-smoke')
+    runBootSmokeTest().catch((err: unknown) => console.error('[boot-smoke]', err))
   } catch (err) {
-    console.error('[boot-smoke] register failed:', err)
+    console.warn('[boot-smoke] skipped:', err instanceof Error ? err.message : err)
   }
 }
