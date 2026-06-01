@@ -86,6 +86,30 @@ async function initPg() {
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS delivery_errors (
+      id SERIAL PRIMARY KEY,
+      timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sender_id TEXT,
+      generation_id TEXT,
+      error_code INTEGER,
+      error_subcode INTEGER,
+      error_message TEXT,
+      attachment_type TEXT,
+      fb_response TEXT
+    )
+  `)
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS manual_tickets (
+      id SERIAL PRIMARY KEY,
+      timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sender_id TEXT NOT NULL,
+      phone TEXT,
+      config JSONB,
+      user_message TEXT,
+      resolved BOOLEAN DEFAULT FALSE
+    )
+  `)
 }
 
 // ─── Filesystem backend ──────────────────────────────────────────────────────
@@ -398,4 +422,70 @@ export async function logMessage(facebookId: string, messageText: string, quickR
       [facebookId, messageText || null, quickReply || null]
     )
   }
+}
+
+// ─── FB delivery error logging ────────────────────────────────────────────────
+
+export async function logDeliveryError(opts: {
+  senderId?: string
+  generationId?: string
+  errorCode?: number
+  errorSubcode?: number
+  errorMessage?: string
+  attachmentType?: string
+  fbResponse?: string
+}): Promise<void> {
+  console.error(`[delivery_error] sender:${opts.senderId} gen:${opts.generationId} type:${opts.attachmentType} code:${opts.errorCode} sub:${opts.errorSubcode} msg:${opts.errorMessage}`)
+  if (usePg) {
+    await initPg()
+    await getPool().query(
+      `INSERT INTO delivery_errors (sender_id, generation_id, error_code, error_subcode, error_message, attachment_type, fb_response)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [opts.senderId ?? null, opts.generationId ?? null, opts.errorCode ?? null, opts.errorSubcode ?? null, opts.errorMessage ?? null, opts.attachmentType ?? null, opts.fbResponse ?? null]
+    )
+  }
+}
+
+// ─── Conversation state persistence ───────────────────────────────────────────
+
+export async function saveConvState(senderId: string, state: object): Promise<void> {
+  if (!usePg) return
+  await initPg()
+  await getPool().query(
+    `INSERT INTO conversations (sender_id, state, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (sender_id) DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()`,
+    [senderId, JSON.stringify(state)]
+  )
+}
+
+export async function loadConvState<T>(senderId: string): Promise<T | null> {
+  if (!usePg) return null
+  await initPg()
+  const { rows } = await getPool().query('SELECT state FROM conversations WHERE sender_id = $1', [senderId])
+  return rows[0]?.state ?? null
+}
+
+export async function clearConvState(senderId: string): Promise<void> {
+  if (!usePg) return
+  await initPg()
+  await getPool().query('DELETE FROM conversations WHERE sender_id = $1', [senderId])
+}
+
+// ─── Manual ticket fallback ───────────────────────────────────────────────────
+
+export async function createManualTicket(opts: {
+  senderId: string
+  phone?: string
+  config?: object
+  userMessage?: string
+}): Promise<number | null> {
+  if (!usePg) return null
+  await initPg()
+  const { rows } = await getPool().query(
+    `INSERT INTO manual_tickets (sender_id, phone, config, user_message)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [opts.senderId, opts.phone ?? null, opts.config ? JSON.stringify(opts.config) : null, opts.userMessage ?? null]
+  )
+  return rows[0]?.id ?? null
 }

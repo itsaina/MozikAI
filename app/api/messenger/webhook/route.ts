@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, releasePayment, logGenerationError, logMessage } from '@/lib/store'
+import { getSettings, saveSettings, addHistory, getAudioBase64, findPendingPayment, markPaymentUsed, releasePayment, logGenerationError, logMessage, logDeliveryError, saveConvState, loadConvState, clearConvState, createManualTicket } from '@/lib/store'
 import { generateMusic } from '@/lib/generate'
 
 // ─── Music config & prompt builder ───────────────────────────────────────────
@@ -190,16 +190,72 @@ interface ConvState {
 
 const conversations = new Map<string, ConvState>()
 
+async function getConv(senderId: string): Promise<ConvState | undefined> {
+  if (conversations.has(senderId)) return conversations.get(senderId)
+  const persisted = await loadConvState<ConvState>(senderId)
+  if (persisted) {
+    conversations.set(senderId, persisted)
+    return persisted
+  }
+  return undefined
+}
+
+async function setConv(senderId: string, state: ConvState): Promise<void> {
+  conversations.set(senderId, state)
+  await saveConvState(senderId, state).catch(err => console.error('[saveConvState]', err))
+}
+
+async function deleteConv(senderId: string): Promise<void> {
+  conversations.delete(senderId)
+  await clearConvState(senderId).catch(err => console.error('[clearConvState]', err))
+}
+
+// Trigger phrases that indicate "I paid, the bot doesnt see it" — for manual ticket fallback
+const PAID_TRIGGERS = [
+  /efa\s+(nandefa|nalefa|alefa)/i,
+  /efa\s+(lasa|nataoko|voaloha)/i,
+  /vita\s+ny\s+(fandoavana|aloa)/i,
+  /vita\s+aloa/i,
+  /j[' ]?ai\s+(pay[ée]|envoy[ée])/i,
+  /lasa\s+ny\s+vola/i,
+  /nandoa\s+aho/i,
+]
+
+function looksLikePaymentClaim(text: string): boolean {
+  if (!text) return false
+  return PAID_TRIGGERS.some(re => re.test(text))
+}
+
 // ─── Messenger API helpers ────────────────────────────────────────────────────
 
 const FB_API = 'https://graph.facebook.com/v19.0/me/messages'
 
-async function sendMsg(recipientId: string, message: object, token: string) {
-  return fetch(`${FB_API}?access_token=${token}`, {
+async function sendMsg(recipientId: string, message: object, token: string, ctx?: { generationId?: string; attachmentType?: string }) {
+  const res = await fetch(`${FB_API}?access_token=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ recipient: { id: recipientId }, messaging_type: 'RESPONSE', message }),
   })
+  if (!res.ok) {
+    const body = await res.text()
+    let errCode: number | undefined, errSub: number | undefined, errMsg: string | undefined
+    try {
+      const parsed = JSON.parse(body)
+      errCode = parsed?.error?.code
+      errSub = parsed?.error?.error_subcode
+      errMsg = parsed?.error?.message
+    } catch { /* ignore */ }
+    logDeliveryError({
+      senderId: recipientId,
+      generationId: ctx?.generationId,
+      attachmentType: ctx?.attachmentType,
+      errorCode: errCode,
+      errorSubcode: errSub,
+      errorMessage: errMsg ?? `HTTP ${res.status}`,
+      fbResponse: body.slice(0, 500),
+    }).catch(err => console.error('[logDeliveryError]', err))
+  }
+  return res
 }
 
 async function sendText(recipientId: string, text: string, token: string) {
@@ -219,12 +275,12 @@ async function sendWithQR(recipientId: string, text: string, qrs: QR[], token: s
 
 async function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
-async function sendAudio(recipientId: string, audioUrl: string, token: string): Promise<{ audioSent: boolean; fileSent: boolean }> {
+async function sendAudio(recipientId: string, audioUrl: string, token: string, generationId?: string): Promise<{ audioSent: boolean; fileSent: boolean }> {
   // type:audio — vocal player, best effort (Facebook rejects it sometimes)
   let audioSent = false
   try {
-    await sendMsg(recipientId, { attachment: { type: 'audio', payload: { url: audioUrl, is_reusable: true } } }, token)
-    audioSent = true
+    const r = await sendMsg(recipientId, { attachment: { type: 'audio', payload: { url: audioUrl, is_reusable: true } } }, token, { generationId, attachmentType: 'audio' })
+    audioSent = r.ok
   } catch (e) {
     console.error('[sendAudio] type:audio failed:', e instanceof Error ? e.message : e)
   }
@@ -233,13 +289,12 @@ async function sendAudio(recipientId: string, audioUrl: string, token: string): 
   let fileSent = false
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      await sendMsg(recipientId, { attachment: { type: 'file', payload: { url: audioUrl, is_reusable: true } } }, token)
-      fileSent = true
-      break
+      const r = await sendMsg(recipientId, { attachment: { type: 'file', payload: { url: audioUrl, is_reusable: true } } }, token, { generationId, attachmentType: 'file' })
+      if (r.ok) { fileSent = true; break }
     } catch (e) {
       console.error(`[sendAudio] type:file attempt ${attempt}/3 failed:`, e instanceof Error ? e.message : e)
-      if (attempt < 3) await sleep(3000 * attempt)
     }
+    if (attempt < 3) await sleep(3000 * attempt)
   }
 
   return { audioSent, fileSent }
@@ -310,7 +365,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
     await sendText(senderId, `❌ Erreur lors de la génération : ${errMsg}`, token)
     await logGenerationError(prompt, senderId, errMsg, state.paymentId)
     if (state.paymentId) await releasePayment(state.paymentId, senderId)
-    conversations.delete(senderId)
+    await deleteConv(senderId)
     return
   }
 
@@ -320,7 +375,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   // ── Phase 2 : Delivery ────────────────────────────────────────────────────
   if (entry) {
     const audioUrl = `${baseUrl}${entry.audioUrl}`
-    const { audioSent, fileSent } = await sendAudio(senderId, audioUrl, token)
+    const { audioSent, fileSent } = await sendAudio(senderId, audioUrl, token, entry.id)
     console.log(`[delivery] sender:${senderId} gen:${entry.id} audio:${audioSent} file:${fileSent}`)
 
     if (!fileSent) {
@@ -336,7 +391,7 @@ async function generateAndSend(senderId: string, state: ConvState, token: string
   }
 
   await sendText(senderId, "✅ Vita ! Alefaso 'Recommencer' raha hamorona hira vaovao.", token)
-  conversations.delete(senderId)
+  await deleteConv(senderId)
 }
 
 // ─── Message handler ──────────────────────────────────────────────────────────
@@ -347,12 +402,14 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
   // Reset triggers
   if (['recommencer', 'restart', 'start', 'bonjour', 'salut', 'hello', 'menu', 'Salama', 'début'].includes(replyLower)) {
-    conversations.delete(senderId)
+    await deleteConv(senderId)
   }
 
   // New conversation
-  if (!conversations.has(senderId)) {
-    conversations.set(senderId, { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false })
+  let state = await getConv(senderId)
+  if (!state) {
+    state = { step: 0, config: { ...DEFAULT_CONFIG }, waitingGenerate: false }
+    await setConv(senderId, state)
     await sendText(senderId, "🎵 Tonga soa eto amin'ny MozikAI ! Hanampy anao hamorona hira amin'ny alalan'ny fanontaniana vitsivitsy izahay.", token)
     await sendText(senderId, "Ity misy ohatra azonao henoina mba hahazoanao hevitra momba ny vokatra azo.", token)
     await sendMsg(senderId, {
@@ -361,8 +418,6 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     await sendStep(senderId, 0, token)
     return
   }
-
-  const state = conversations.get(senderId)!
 
   // Waiting for "générer" confirmation (disabled – auto-generation only)
   if (state.waitingGenerate) {
@@ -375,6 +430,21 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
   // ── Payment step with phone normalization ──
   if (currentStep.key === 'payment') {
+    // Detect "I paid but bot doesnt see it" claim → create manual ticket
+    if (looksLikePaymentClaim(msgText)) {
+      const ticketId = await createManualTicket({
+        senderId,
+        phone: state.config.phone || undefined,
+        config: state.config,
+        userMessage: msgText.slice(0, 1000),
+      }).catch(err => { console.error('[createManualTicket]', err); return null })
+      await sendText(senderId,
+        `📩 Voarakitra ny fitarainanao${ticketId ? ` (#${ticketId})` : ''}. Hojerena manokana ny fandoavanao ary hifandray aminao tsy ho ela izahay. Misaotra anao niandry.`,
+        token
+      )
+      return
+    }
+
     let phone = msgText.trim()
 
     // 1. Remove all spaces, dashes, dots, parentheses
@@ -401,6 +471,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
     }
 
     state.config.phone = phone
+    await setConv(senderId, state)
 
     if (phone === '0341486900') {
       await sendText(senderId, "Laharan'ny Superchat no nosoratanao fa tsy ny anao; soraty azafady ny laharanao nampiasainao nandoavana.", token)
@@ -419,6 +490,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
 
     // Payment already atomically claimed (used=TRUE) by findPendingPayment
     state.paymentId = pending.id
+    await setConv(senderId, state)
     await sendText(senderId, '✅ Voamarina ny fandoavanao ! Manomboka ny famoronana hira... ⏳', token)
 
     // Generate automatically without waiting for "générer"
@@ -436,6 +508,7 @@ async function handleMessage(senderId: string, msgText: string, qrPayload: strin
   }
 
   state.step++
+  await setConv(senderId, state)
 
   if (state.step < STEPS.length) {
     const nextStep = STEPS[state.step]
