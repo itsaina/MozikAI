@@ -57,7 +57,7 @@ function buildPrompt(c: MusicConfig): string {
   const genreEn = c.genre ? (GENRE_MAP[c.genre] ?? c.genre) : ''
   if (genreEn) parts.push(`${c.era && c.era !== 'Contemporain' && c.era !== 'Avant 1950' ? c.era + ' ' : ''}${genreEn}`)
   else if (c.era) parts.push(c.era === 'Contemporain' ? 'contemporary' : c.era === 'Avant 1950' ? 'pre-1950s' : c.era)
-  if (c.tempo) parts.push(TEMPO_MAP[c.tempo] ?? c.tempo)
+  if (c.tempo && TEMPO_MAP[c.tempo]) parts.push(TEMPO_MAP[c.tempo])
   if (c.instrument) parts.push(INSTRUMENT_MAP[c.instrument] ?? `featuring ${c.instrument}`)
   if (c.dynamics) parts.push(DYNAMICS_MAP[c.dynamics] ?? c.dynamics)
   if (c.vocals) parts.push(VOCALS_MAP[c.vocals] ?? c.vocals)
@@ -79,15 +79,14 @@ function configIsUsable(c: MusicConfig | undefined): boolean {
 const FB_API = 'https://graph.facebook.com/v19.0/me/messages'
 
 async function fbSend(senderId: string, message: object, token: string, ctx: { generationId?: string; attachmentType?: string }) {
-  // Use POST_PURCHASE_UPDATE message tag so we can reach users beyond the 24h window —
-  // the audio is the song they actually paid for, which is the textbook use case for this tag.
+  // POST_PURCHASE_UPDATE tag is deprecated (error_subcode 1893061) — use RESPONSE instead.
+  // Stuck payments are retried after 60 min min so most users will still be within the 24h window.
   const res = await fetch(`${FB_API}?access_token=${token}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       recipient: { id: senderId },
-      messaging_type: 'MESSAGE_TAG',
-      tag: 'POST_PURCHASE_UPDATE',
+      messaging_type: 'RESPONSE',
       message,
     }),
   })

@@ -77,6 +77,8 @@ async function initPg() {
       used BOOLEAN DEFAULT FALSE
     )
   `)
+  // Idempotency: prevent duplicate payments from MVola webhook retries
+  await p.query(`CREATE UNIQUE INDEX IF NOT EXISTS payments_trans_id_unique ON payments (trans_id) WHERE trans_id != 'unknown'`)
   await p.query(`
     CREATE TABLE IF NOT EXISTS messenger_messages (
       id          SERIAL PRIMARY KEY,
@@ -290,10 +292,18 @@ export async function addPayment(amount: number, senderPhone: string, transId: s
 
   if (usePg) {
     await initPg()
-    await getPool().query(
-      'INSERT INTO payments (id, amount, sender_phone, trans_id, message, used) VALUES ($1, $2, $3, $4, $5, $6)',
+    const res = await getPool().query(
+      `INSERT INTO payments (id, amount, sender_phone, trans_id, message, used) VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (trans_id) WHERE trans_id != 'unknown' DO NOTHING
+       RETURNING id`,
       [id, amount, record.senderPhone, transId, message, false]
     )
+    if (!res.rowCount) {
+      // Duplicate trans_id — return existing record
+      const { rows } = await getPool().query('SELECT id, timestamp, amount, sender_phone, trans_id, message, used FROM payments WHERE trans_id = $1', [transId])
+      const r = rows[0]
+      return { id: r.id, timestamp: r.timestamp, amount: r.amount, senderPhone: r.sender_phone, transId: r.trans_id, message: r.message, used: r.used }
+    }
     return record
   }
 

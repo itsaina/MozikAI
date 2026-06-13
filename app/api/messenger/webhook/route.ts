@@ -67,7 +67,8 @@ function buildPrompt(c: MusicConfig): string {
   const genreEn = GENRE_MAP[c.genre] ?? c.genre
   if (c.genre) parts.push(`${c.era && c.era !== 'Contemporain' && c.era !== 'Avant 1950' ? c.era + ' ' : ''}${genreEn}`)
   else if (c.era) parts.push(c.era === 'Contemporain' ? 'contemporary' : c.era === 'Avant 1950' ? 'pre-1950s' : c.era)
-  if (c.tempo) parts.push(TEMPO_MAP[c.tempo] ?? c.tempo)
+  // Only include tempo if it's a known value — free text pasted at this step would corrupt the prompt
+  if (c.tempo && TEMPO_MAP[c.tempo]) parts.push(TEMPO_MAP[c.tempo])
   if (c.instrument) parts.push(INSTRUMENT_MAP[c.instrument] ?? `featuring ${c.instrument}`)
   if (c.dynamics) parts.push(DYNAMICS_MAP[c.dynamics] ?? c.dynamics)
   if (c.vocals) parts.push(VOCALS_MAP[c.vocals] ?? c.vocals)
