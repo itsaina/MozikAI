@@ -109,8 +109,10 @@ export async function POST(req: NextRequest) {
     const transMatch = String(message).match(/(?:Ref|Trans\s*Id)\s*:\s*([A-Za-z0-9.\-_]+)/i)
     const transId = transMatch ? transMatch[1] : 'unknown'
 
-    // Extract customer phone from message text, NOT from phonenumber field
-    const senderPhone = extractSenderPhone(id ?? message, phonenumber)
+    // Extract customer phone from message text, NOT from phonenumber field.
+    // Always use `message` (contains "de la part de NAME PHONE") — `id` is often the
+    // MVola service alias ('MVola') which contains no phone number.
+    const senderPhone = extractSenderPhone(message, phonenumber)
 
     const record = await addPayment(amount, senderPhone, transId, message)
     console.log('[payment/webhook] recorded:', record)
